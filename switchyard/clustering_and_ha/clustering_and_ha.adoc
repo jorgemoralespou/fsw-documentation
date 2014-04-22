@@ -1,0 +1,39 @@
+= Clustering and HA with FSW
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+
+== Clustering
+
+=== Homogeneous clusters
+
+=== Heterogeneous clusters
+
+== Load Balancing
+
+=== Http based transports
+
+==== Apache
+
+==== Apahe + mod_cluster
+
+==== Local balancing of requests at client side
+
+=== JMS
+
+=== File, FTP
+
+=== SCA
+
+==== Local invocation
+
+==== Remote invocations
+
+== Tips and tricks
+
+
+// vim: set syntax=asciidoc:

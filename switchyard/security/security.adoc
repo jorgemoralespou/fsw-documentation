@@ -1,0 +1,21 @@
+= Security
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+
+== Authentication
+
+== Authorization
+
+== Policies
+
+== Tips and tricks
+
+=== Using security Principals or roles to do logic (routing)
+
+
+// vim: set syntax=asciidoc:

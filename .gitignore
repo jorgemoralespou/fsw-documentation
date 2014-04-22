@@ -1,0 +1,11 @@
+.html
+.pdf
+.zip
+.jar
+.classpath
+.project
+.settings
+.xml
+target
+*sublime-project
+*sublime-workspace

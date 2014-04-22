@@ -1,0 +1,31 @@
+= Management and monitoring
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+
+== Management
+
+=== JMX
+
+=== Console
+
+=== Cli
+
+=== Tips and tricks
+
+==== What is hot configurable?
+
+== Monitoring
+
+=== JMX
+
+=== Logs
+
+=== SNMP
+
+
+// vim: set syntax=asciidoc:

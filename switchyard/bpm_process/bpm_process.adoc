@@ -1,0 +1,64 @@
+= BPM Process
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+
+== Calling a BPM process
+We are going to do a walk through of creating a BPM process and calling it from SwitchYard. Our process will call 3 other SwitchYard service as part of it orchestration logic.
+
+image:bpm_process_definition.png["Process Definition"]
+
+Our process consist of one method, that receives an *Order* and answers with an *OrderAck*.
+
+[source,java]
+----
+import org.switchyard.quickstarts.bpm.service.data.Order;
+import org.switchyard.quickstarts.bpm.service.data.OrderAck;
+
+public interface ProcessOrder {
+    OrderAck submitOrder(Order order);
+}
+----
+
+To invoke the BPM process, we select the properties for the BPM component in the Switchyard editor, and map the operations to BPM process events. For this particular example, we will map the *submitOrder* operation to trigger the start of the process with *START_PROCESS*, and we map the operation input and output data types to the process data types.
+
+image:process_properties_2.png["Process operation mapping"]
+
+As can be seen, the operation input value is mapped with *message.content* to a process variable called *input_param*. For the operation return type, we get the process result, which will come in a process variable that we have called *output_result*. (By default, BPM will use an output variable called *Result*).
+
+Our process definition is quite simple, it will invoke a SwitchYard service, and will evaluate the result of this invocation to decide which other service to call amongst two. The result of the invocation of this last service call will be used as a result of the whole process, this means, as a result of the operation being invoked.
+
+image:process.png["Process definition"]
+
+To be able to interact with SwitchYard, we map the input and output parameters to "Process variables", as well as we declare some other variables to be used along the process execution.
+
+image:variables.png["Process Variables definition"]
+
+When you want to invoke from a BPM process a *SwitchYard Service Taks*, that means a SwitchYard "Reference", you just drop the *SwitchYard Service Task* to the canvas and set the required properties. By default there will be the required properties for the invocation:
+
+image:switchyard_task_defaults.png["SwitchYard Service Task defaults"]
+
+We then need to fill:
+
+* *ServiceName*
+* *OperationName*
+
+And then map the SwitchYard Task invocation parameters, to the process variables. (Shown in red in the picture below)
+
+image:switchyard_task_params.png["SwitchYard Service Task params"]
+
+In this example, we have copied the result of the call to the Inventory service into a process variable called *InventoryAvailable* that we use in the following gateway to select where to divert.
+
+image:divert.png["Exclusive gateway"]
+
+Once the gateway selects the route to take, it is time to call last "SwitchYard Service", and again, setting up required fields and mappings to process variables. This time, the result of the execution of the SwitchYard Service will be mapped to the BPM process output.
+
+image:process_output.png["Process output mapping"]
+
+NOTE: The name of the process defines the scope for the process variables. (ProcessOrder in this example)
+
+// vim: set syntax=asciidoc:

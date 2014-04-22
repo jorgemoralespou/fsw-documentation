@@ -1,0 +1,23 @@
+= Error handling
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+
+== Error in backend service (external reference)
+
+== Error in component
+
+== Error in wire
+
+== Error in transformation/validation
+
+== Error in binding 
+
+== Tips and tricks
+
+
+// vim: set syntax=asciidoc:

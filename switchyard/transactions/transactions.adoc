@@ -1,0 +1,23 @@
+= Treansactions
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+
+== Create at input point (with request)
+
+== Transaction propagation
+
+=== Suspend and resume
+
+== Transactional resources
+
+== Tips and tricks
+
+=== Using transactions with EJBs for persistence
+
+
+// vim: set syntax=asciidoc:

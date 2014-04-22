@@ -1,0 +1,107 @@
+= Configuration
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+
+== Configuration (Properties)
+SwitchYard supports two types of configuration properties out of the box:
+
+* Environment properties
+* Implementation properties
+
+=== Environment properties
+Environment properties allow you to replace any attribute or element value in switchyard.xml with a property from the runtime environment. The syntax for a replaced token is "${varName}" where "varname" is your property name. The configuration layer in SwitchYard is configured with instances of PropertyResolver, which are used to resolve the value of a property based on its name. 
+
+==== Property resolution order
+Property values are resolved from the following locations:
+
+* System properties passed by -D option of Java VM like "-Dproperty.name=property.value"
+* System environment variables, referenced with an "env." prefix, for example: env.PATH
+* Unit test properties
+* JBoss AS7 properties, including access into the SecurityVault
+* Domain properties in switchyard.xml
+* SCA property definitions in the composite or component
+
+The priority in resolving a property is from top to bottom, so a property defined as a System property will always take precedence over a property defined at domain or composite, and a property at domain level will olways take precedence over a property defined at component level.
+
+See: https://community.jboss.org/message/867080
+https://community.jboss.org/message/819215
+See: https://docs.jboss.org/author/display/SWITCHYARD/Properties
+
+==== Domain properties
+
+See package:
+org.switchyard.common.property
+
+PropertyResolvers:
+PropertiesPropertyResolver
+TestPropertyResolver
+SystemAndTestPropertyResolver
+CompoundPropertyResolver
+MapPropertyResolver
+
+Creating our custom propertyResolver and registering it in switchyard.xml in switchyard as propertyResolver.
+https://github.com/jboss-switchyard/core/blob/master/config/src/main/java/org/switchyard/config/DOMConfiguration.java#L685
+
+=== Implementation properties
+
+== Tips and tricks
+
+=== Define default value for a property
+When we define a property, we can provide a default value, so if the property is not defined by the user it will get this default value. To define this default value, just append to the property name the default value, separated by a colon (:).
+
+[source]
+----
+${server.port:8080}
+----
+
+=== Where to define environment properties
+See: https://community.jboss.org/message/868913
+
+==== As component properties
+Properties can be defined as component property. This way of defining properties is not dynamic, but every properties defined here, can be overriden by properties defined in a "prioritized" scope.
+
+[source, java]
+----
+
+----
+
+==== As composite properties
+Properties can be defined as composite property. This way of defining properties is not dynamic, but every properties defined here, can be overriden by properties defined in a "prioritized" scope.
+
+[source, java]
+----
+
+----
+
+==== As domain properties
+
+==== In a static module
+
+==== In a dynamic module
+
+==== As OS environment properties
+
+==== As Application Server properties from AS configuration
+
+This option can be configurable through the console:
+https://community.jboss.org/wiki/JBossAS7SystemProperties
+
+==== As Application Server properties from file
+
+==== Using maven to set up your properties
+https://community.jboss.org/message/867257
+
+----
+-P=<url>	 Load system properties from the given URL.
+-P <url>	 Load system properties from the given URL.
+--properties=<url>	 Load system properties from the given URL.
+----
+
+=== How to make endpoints/config dynamic
+
+// vim: set syntax=asciidoc:

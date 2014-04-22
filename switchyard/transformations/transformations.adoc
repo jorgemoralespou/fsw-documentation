@@ -1,0 +1,23 @@
+= Transformations
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+
+== Transforming input message (message to the wire)
+
+=== JAXB
+
+=== Smooks
+
+=== Java
+
+=== XSLT
+
+
+
+
+// vim: set syntax=asciidoc:

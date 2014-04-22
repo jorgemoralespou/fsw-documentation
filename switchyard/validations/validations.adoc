@@ -1,0 +1,23 @@
+= Validations
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+== Types of validations
+
+[Official validation doc](https://docs.jboss.org/author/display/SWITCHYARD/Validators)
+
+=== XML Validation
+
+==== SOAPFault on validation
+
+
+== Tips and tricks
+
+=== How to map validation error to a custom SOAPFault
+
+
+// vim: set syntax=asciidoc:
