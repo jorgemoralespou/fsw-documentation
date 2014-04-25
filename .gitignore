@@ -1,7 +1,7 @@
-.html
-.pdf
-.zip
-.jar
+*.html
+*.pdf
+*.zip
+*.jar
 .classpath
 .project
 .settings
@@ -9,3 +9,4 @@
 target
 *sublime-project
 *sublime-workspace
+asciidoctor.css

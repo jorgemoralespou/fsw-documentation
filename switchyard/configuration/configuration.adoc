@@ -1,20 +1,18 @@
 = Configuration
 Jorge Morales <jmorales@redhat.com>
 xx/xx/2014
-:toc:
+:toc2:
+:toclevels: 4
 :icons: font
 :imagesdir: ./images
 :source-highlighter: prettify
 
 
 == Configuration (Properties)
-SwitchYard supports two types of configuration properties out of the box:
+SwitchYard supports configuration properties, that can be injected into configuration or into service implementations:
 
-* Environment properties
-* Implementation properties
-
-=== Environment properties
-Environment properties allow you to replace any attribute or element value in switchyard.xml with a property from the runtime environment. The syntax for a replaced token is "${varName}" where "varname" is your property name. The configuration layer in SwitchYard is configured with instances of PropertyResolver, which are used to resolve the value of a property based on its name. 
+=== Switchyard model configuration
+SwitchYard allow you to replace any attribute or element value in switchyard.xml with a property from the runtime environment. The syntax for a replaced token is "${varName}" where "varname" is your property name. The configuration layer in SwitchYard is configured with instances of *PropertyResolver*, which are used to resolve the value of a property based on its name.
 
 ==== Property resolution order
 Property values are resolved from the following locations:
@@ -28,12 +26,115 @@ Property values are resolved from the following locations:
 
 The priority in resolving a property is from top to bottom, so a property defined as a System property will always take precedence over a property defined at domain or composite, and a property at domain level will olways take precedence over a property defined at component level.
 
-See: https://community.jboss.org/message/867080
-https://community.jboss.org/message/819215
-See: https://docs.jboss.org/author/display/SWITCHYARD/Properties
+=== Injecting properties into Service Implementation
+Implementation properties allow you to inject one or more property values into a service implementation. This is based on the property support in the SCA assembly spec. Since the property is injected into service implementation logic, the injection mechanism itself is unique to each implementation type. The details for each implementation type follow:
 
-==== Domain properties
+* *Java*: injected using @Property into a CDI bean
+* *Camel*: wired into Camel properties component and accessible in a Camel route using Camel's own varName property notation
+* *BPEL*: mapped into process variables via an <assign> with using resolveProperty() XPath custom function
+* *BPMN 2*: inserted into process variables by data input associations
+* *Drools*: available in a global map
 
+==== Injecting properties in Java Bean implementations
+ Implementation properties represent environmental properties that you have defined in the SwitchYard application descriptor (switchyard.xml) for your bean implementation. Implementation properties in SwitchYard are the properties that you can configure on a specific service implementation. That is, you can make the property value available to service logic executing inside an implementation container. Here is an example:
+
+[source,xml]
+----
+<sca:component name="SimpleServiceBean">
+      <bean:implementation.bean class="com.example.switchyard.switchyard_example.SimpleServiceBean"/>
+      <sca:service name="SimpleService">
+        <sca:interface.java interface="com.example.switchyard.switchyard_example.SimpleService">
+          <properties>
+            <property name="userName" value="${user.name}"/>
+          </properties>
+        </sca:interface.java>
+      </sca:service>
+</sca:component>
+----
+
+To access the Implementation Properties, add an @Property annotation to your bean class identifying the property you want to inject:
+
+[source,java]
+----
+@Service(SimpleService.class)
+public class SimpleServiceBean implements SimpleService {
+
+  @Property(name="userName")
+  private String name;
+
+  @Override
+  public String sayHello(String message) {
+        return "Hello " + name + ", I got a message: " + message;
+    }
+
+}
+----
+
+==== Injecting Implementation Properties in Camel Routes
+SwitchYard integrates with the Properties Component in Camel to make system and application properties available inside your route definitions. You can inject properties into your camel route using {{propertyName}} expression, where propertyName is the name of the property.
+For example, the following camel route expects the user.name property to be injected in the last <Log> statement:
+
+[source,xml]
+----
+<route xmlns="http://camel.apache.org/schema/spring" id="CamelTestRoute">
+    <log message="ItemId [${body}]"/>
+    <to uri="switchyard://WarehouseService?operationName=hasItem"/>
+    <log message="Title Name [${body}]"/>
+    <log message="Properties [{{user.name}}]"/>
+</route>
+----
+
+==== Injecting Implementation Properties in BPEL
+You can inject properties into your BPEL process definition with using *SwitchYardPropertyFunction.resolveProperty()* XPath custom function.
+
+This bpel:copy section copies "Greeting" property value into the ReplySayHelloVar variable:
+
+[source,xml]
+----
+.....
+<bpel:copy>
+     <bpel:from xmlns:property="java:org.switchyard.component.bpel.riftsaw.SwitchYardPropertyFunction"
+                expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0">
+         <![CDATA[concat(property:resolveProperty('Greeting'), $ReceiveSayHelloVar.parameters/tns:input)]]>
+     </bpel:from>
+     <bpel:to part="parameters" variable="ReplySayHelloVar">
+         <bpel:query queryLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0"><![CDATA[tns:result]]></bpel:query>
+     </bpel:to>
+</bpel:copy>
+----
+
+==== Injecting Implementation Properties in BPMN 2
+TODO:
+
+==== Injecting Implementation Properties in Drools
+TODO:
+
+=== Invocation properties
+While it is a best practice to write your service logic to the data that is defined in the contract (the input and output message types), there can be situations where you need to access contextual information like message headers such as received file name in your implementation. To facilitate this, the Bean component allows you to access the SwitchYard Exchange Context instance associated with a given Bean Service Operation invocation.
+Invocation properties represent the contextual information (like message headers) in your bean implementation.
+
+==== Accessing Invocation Properties
+To enable access to the invocation properties, add a Context property to your bean and annotate it with the CDI @Inject annotation:
+
+[source,java]
+----
+@Service(SimpleService.class)
+public class SimpleServiceBean implements SimpleService {
+
+@Inject
+private Context context;
+
+public String sayHello(String message) {
+        System.out.println("*** Funky Context Property Value: " + context.getPropertyValue("funkyContextProperty"));
+        return "Hi there!!";
+    }
+}
+----
+Here, the Context interface allows your bean logic to get and set properties in the context.
+
+NOTE: You can invoke the Context instance only within the scope of one of the Service Operation methods. If you invoke it outside this scope, it results in an UnsupportedOperationException error.
+
+=== Domain properties
 See package:
 org.switchyard.common.property
 
@@ -47,7 +148,11 @@ MapPropertyResolver
 Creating our custom propertyResolver and registering it in switchyard.xml in switchyard as propertyResolver.
 https://github.com/jboss-switchyard/core/blob/master/config/src/main/java/org/switchyard/config/DOMConfiguration.java#L685
 
-=== Implementation properties
+=== Additional info
+See: https://community.jboss.org/message/867080
+https://community.jboss.org/message/819215
+See: https://docs.jboss.org/author/display/SWITCHYARD/Properties
+
 
 == Tips and tricks
 
@@ -65,42 +170,189 @@ See: https://community.jboss.org/message/868913
 ==== As component properties
 Properties can be defined as component property. This way of defining properties is not dynamic, but every properties defined here, can be overriden by properties defined in a "prioritized" scope.
 
-[source, java]
+[source, xml]
 ----
+<sy:switchyard ...>
+  <sca:composite ...>
+    <sca:component ...>
+      ...
+      <sca:property value="test" name="MY_PROPERTY"/>
+    </sca:component>
+    <sca:service...>
+      ...
+    </sca:service>
+    <sca:reference ...>
+      ...
+    </sca:reference>
 
+  </sca:composite>
+  ...
+</sy:switchyard>
 ----
 
 ==== As composite properties
 Properties can be defined as composite property. This way of defining properties is not dynamic, but every properties defined here, can be overriden by properties defined in a "prioritized" scope.
 
-[source, java]
+[source, xml]
 ----
-
+<sy:switchyard ...>
+  <sca:composite ...>
+    <sca:component ...>
+      ...
+    </sca:component>
+    <sca:service...>
+      ...
+    </sca:service>
+    <sca:reference ...>
+      <sca:interface.java .../>
+      <file:binding.file name="FileBinding">
+        <file:directory>/tmp</file:directory>
+        <file:fileName>${MY_FILENAME}</file:fileName>
+        <file:produce/>
+      </file:binding.file>
+    </sca:reference>
+    <sca:property value="test.txt" name="MY_FILENAME"/>
+  </sca:composite>
+  ...
+</sy:switchyard>
 ----
 
 ==== As domain properties
+Properties can be defined as composite property. This way of defining properties is not dynamic, but every properties defined here, can be overriden by properties defined in a "prioritized" scope.
 
-==== In a static module
+[source, xml]
+----
+<sy:switchyard ...>
+  <sca:composite ...>
+    <sca:component ...>
+      ...
+    </sca:component>
+    <sca:service...>
+      ...
+    </sca:service>
+    <sca:reference ...>
+      ...
+    </sca:reference>
+  </sca:composite>
+  ...
+  <sca:domain>
+    <sca:property value="test.txt" name="MY_FILENAME"/>
+  </sca:domain>
+ </sy:switchyard>
+----
 
-==== In a dynamic module
+==== In a static module (or dynamic)
+NOTE: Right now, it seems that defining properties in static module does not work. They do not get picked up by the property resolvers.
+Properties can be externalized from the SwitchYard application it self by defining them outside the switchyard.xml file. One place could be a module. For this to work, you need to define your module:
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<module xmlns="urn:jboss:module:1.0" name="com.examples.switchyard.properties">
+    <properties>
+        <property name="ftp_server.host" value="localhost"/>
+        <property name="ftp_server.port" value="22"/>
+    </properties>
+</module>
+----
+
+And use these properties in your SwitchYard application:
+
+[source,xml]
+----
+<ftp:binding.sftp>
+    <ftp:host>${ftp_server.host}</ftp:host>
+    <ftp:port>${ftp_server.port}</ftp:port>
+   ....
+</ftp:binding.sftp>
+----
 
 ==== As OS environment properties
+Properties can be loaded from OS environment properties. Every environment property is accesible by prefixing it with *env*.
+
+So a property defined like (in bash):
+
+[source]
+----
+export MY_PROPERTY=test
+----
+
+Can be used in your SwitchYard application:
+
+[source,xml]
+----
+<ftp:binding.sftp>
+    <ftp:host>${env.MY_PROPERTY}</ftp:host>
+   ....
+</ftp:binding.sftp>
+----
 
 ==== As Application Server properties from AS configuration
+Application server has the ability to define properties directly in it's configuration (either by file or with the console) and this configuration will be dynamically updated, and persisted.
+See: https://community.jboss.org/wiki/JBossAS7SystemProperties
 
-This option can be configurable through the console:
-https://community.jboss.org/wiki/JBossAS7SystemProperties
+Adding the following configuration to the definition of the server definition:
+
+
+[source,xml]
+----
+<server name="xyz.home" xmlns="urn:jboss:domain:1.0">
+    <extensions>
+        <extension module="org.jboss.as.clustering.infinispan"/>
+        <extension module="org.jboss.as.clustering.jgroups"/>
+        <extension module="org.jboss.as.connector"/>
+        ....
+    </extensions>
+    <system-properties>
+        <property name="MY_PROPERTY" value="test"/>
+    </system-properties>
+----
+
+This properties will be used in the same way:
+
+[source,xml]
+----
+<ftp:binding.sftp>
+    <ftp:host>${MY_PROPERTY}</ftp:host>
+   ....
+</ftp:binding.sftp>
+----
+
 
 ==== As Application Server properties from file
+You can pass a properties file as an argument to JBoss AS startup script, and it will load all the properties in the file and make then accesible, so we can start the AS like:
+
+[source]
+----
+$./standalone.sh -P file:///data/production.properties
+----
+
+And this properties will be accesible, as in any other example above.
+
+See: link:https://access.redhat.com/site/documentation/en-US/JBoss_Enterprise_Application_Platform/6.1/html/Administration_and_Configuration_Guide/chap-Application_Server_Management.html#Reference_of_Switches_and_Arguments_to_pass_at_Server_Runtime1[JBoss EAP command line switches]
+
+Provided alternatives are
+
+|====
+|-P=<url>|Load system properties from the given URL.
+|-P <url> |Load system properties from the given URL.
+|--properties=<url>|Load system properties from the given URL.
+|====
 
 ==== Using maven to set up your properties
-https://community.jboss.org/message/867257
 
+link:https://community.jboss.org/message/867257[Preferred approach to Switchyard multiple environment properties?]
+
+
+
+==== Load all properties from a file
+NOTE: It is not possible to load all the properties available in a file, so a link:https://issues.jboss.org/browse/SWITCHYARD-2048[JIRA] has been created.
+
+[source,xml]
 ----
--P=<url>	 Load system properties from the given URL.
--P <url>	 Load system properties from the given URL.
---properties=<url>	 Load system properties from the given URL.
+   <sca:properties file="ftp.properties"/>
 ----
+
 
 === How to make endpoints/config dynamic
 
