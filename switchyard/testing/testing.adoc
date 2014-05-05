@@ -1,7 +1,7 @@
 = Testing with FSW
 Jorge Morales <jmorales@redhat.com>
 26/03/2014
-:toc2:
+:toc:
 :toclevels: 4
 :icons: font
 :imagesdir: ./images

@@ -6,6 +6,30 @@ xx/xx/2014
 :imagesdir: ./images
 :source-highlighter: prettify
 
+== When a transaction is created
+Transactions are handled in the handler chain through which a Exchange flows. There is a specific ExchangeHandler for transactions, *org.switchyard.handlers.TransactionHandler*, that interprets transactional policy specified on an exchange and handles transactional requirements.
+For transactions to work, there must be a TransactionManager accesible to this handler, so the service must be running in a JEE context. If no TransactionManager is available at TransactionHandler creation time, a log debug message will be shown.
+
+TransactionHandler will be invoked two times per Exchange, before execution and after execution, so a transaction can be "created, suspended" and "terminated, resumed".
+
+In the before execution, policies combination is evaluated, and if an incompatible policies is defined, a HandlerException is thrown.
+Transaction status is also checked, so if a transaction is required and there is no transaction in the current invocation a HandlerException is thrown. And then executes the required action for the combination defined, so it starts a new transaction or suspends current transaction.
+
+
+== Transaction policies
+
+=== Implementation policies
+These transaction policies are set at the implementation (components definition) and define the transactiona requirement for the logic contained in the component.
+
+* *managedTransaction.Global*: Uses any existing global transaction propagated from the client or else begins and complete a new global transaction.
+* *managedTransaction.Local*: SwitchYard runtime begins and complete a Local Transaction Containment for each Exchange.
+* *noManagedTransaction*: SwitchYard runtime doesn't start any transaction. Application has a responsibility to manage the transaction boundaries. This happens when
+
+=== Interaction policies
+These transaction policies are set at the interaction (wire) and defines what logic drives the propagation or not of the existing transactional context.
+
+* *propagatesTransaction*: Any existing transaction should continue and be used during the invocation.
+* *suspendsTransaction*: Any existing transaction should be suspended before the invocation takes place.
 
 == Create at input point (with request)
 
@@ -14,6 +38,8 @@ xx/xx/2014
 === Suspend and resume
 
 == Transactional resources
+
+== Transaction propagation via SCA
 
 == Tips and tricks
 

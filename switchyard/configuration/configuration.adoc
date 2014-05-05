@@ -1,7 +1,7 @@
 = Configuration
 Jorge Morales <jmorales@redhat.com>
 xx/xx/2014
-:toc2:
+:toc:
 :toclevels: 4
 :icons: font
 :imagesdir: ./images
@@ -36,7 +36,7 @@ Implementation properties allow you to inject one or more property values into a
 * *Drools*: available in a global map
 
 ==== Injecting properties in Java Bean implementations
- Implementation properties represent environmental properties that you have defined in the SwitchYard application descriptor (switchyard.xml) for your bean implementation. Implementation properties in SwitchYard are the properties that you can configure on a specific service implementation. That is, you can make the property value available to service logic executing inside an implementation container. Here is an example:
+Implementation properties represent environmental properties that you have defined in the SwitchYard application descriptor (switchyard.xml) for your bean implementation. Implementation properties in SwitchYard are the properties that you can configure on a specific service implementation. That is, you can make the property value available to service logic executing inside an implementation container. Here is an example:
 
 [source,xml]
 ----
@@ -353,6 +353,32 @@ NOTE: It is not possible to load all the properties available in a file, so a li
    <sca:properties file="ftp.properties"/>
 ----
 
+=== Loading properties for test
+In tests, properties can be added and resolved at the top level. There is a PropertyMixIn that eases working with properties:
+
+
+[source,java]
+----
+   private PropertyMixIn pmi;
+
+   ...
+   pmi.set("test.property.name", "test");
+   pmi.set("test.property.name", Integer.valueOf(100));
+   ...
+   pmi.get("test.property.name");
+   ...
+----
+
+If you need, underlying access to the PropertyResolver for tests, where a MixIn is not applicable (Not Running With SwitchYardRunner), and to avoid having to set command line parameters, there is a TestPropertyResolver.INSTANCE that can be used in tests.
+
+To put a property do:
+
+[source,java]
+----
+TestPropertyResolver.INSTANCE.getMap().put("name","value");
+----
+
+This property will be set, and retrieved by any service when resolving that property.
 
 === How to make endpoints/config dynamic
 
