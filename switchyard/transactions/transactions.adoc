@@ -1,4 +1,4 @@
-= Treansactions
+= Transactions
 Jorge Morales <jmorales@redhat.com>
 xx/xx/2014
 :toc:
@@ -6,44 +6,118 @@ xx/xx/2014
 :imagesdir: ./images
 :source-highlighter: prettify
 
-== When a transaction is created
+== How transactions work in SwitchYard
 Transactions are handled in the handler chain through which a Exchange flows. There is a specific ExchangeHandler for transactions, *org.switchyard.handlers.TransactionHandler*, that interprets transactional policy specified on an exchange and handles transactional requirements.
-For transactions to work, there must be a TransactionManager accesible to this handler, so the service must be running in a JEE context. If no TransactionManager is available at TransactionHandler creation time, a log debug message will be shown.
+For transactions to work, there must be a TransactionManager accesible to this handler, so the service must be running in a JEE context. If no TransactionManager is available at TransactionHandler creation time, a log debug message will be shown. TransactionHandler will be created when deploying a service.
+QUESTION: Is this true??? Or it is created at SwitchYard engine boot up time?
 
 TransactionHandler will be invoked two times per Exchange, before execution and after execution, so a transaction can be "created, suspended" and "terminated, resumed".
 
 In the before execution, policies combination is evaluated, and if an incompatible policies is defined, a HandlerException is thrown.
-Transaction status is also checked, so if a transaction is required and there is no transaction in the current invocation a HandlerException is thrown. And then executes the required action for the combination defined, so it starts a new transaction or suspends current transaction.
+Transaction status is also checked, so if a transaction is required and there is no transaction in the current invocation a HandlerException is thrown. And then executes the required action for the combination defined, so it starts a new transaction or suspends current transaction. Failure to start or suspend the transaction will throw a HandlerException with the appropiate message, and a log debug message will be written.
+Once the transaction is suspended/created, the required/provided policies for the Exchange are set in the Exchange context (as discussed below).
 
+In the after execution, the transaction initiated by this handler (if any) will be terminated (commited or rollbacked), and if there is a supended transaction, it will be resumed. Termination function will depend on whatever *javax.transaction.Status* is set on the TransactionManager, if it is Status.STATUS_MARKED_ROLLBACK it will be rollbacked, or if it is Status.STATUS_ACTIVE it will be committed. If there is any error while commiting or rollbacking the transaction, a HandlerException will be thrown with the appropiate message and logged accordingly, at debug level.
 
-== Transaction policies
+If a fault is thrown during the execution of a transaction, TransactionHandler will check for a *rollbackOnFault* property on the exchange, to determine what to do, either commit or rollback. Default behaviour is to set this property to true in case of an error in the execution of any SwitchYard logic, so the transaction will be *marked* as rollbackOnly, and finalized wherever it was started, with a rollback action.
 
-=== Implementation policies
+[source,java]
+----
+exchange.getContext().getProperty(Exchange.ROLLBACK_ON_FAULT)
+----
+
+To override this functionality, and be able to commit on a fault, you will need to set this property to false.
+
+QUESTION: Show example
+
+Provided policy represents an assertion that a given policy is satisfied. Required policy represents a requirement that a specific policy must be provided.  The set of required and provided policies is carried as an exchange-scoped context property
+
+[source,java]
+----
+Set<Policy> provided = getPolicies(exchange, PolicyUtil.PROVIDED_PROPERTY);
+provided.add(policy);
+exchange.getContext().setProperty("org.switchyard.policy.provided", provided, Scope.EXCHANGE).addLabels(BehaviorLabel.TRANSIENT.label());
+...
+Set<Policy> required = getPolicies(exchange, PolicyUtil.REQUIRED_PROPERTY);
+required.add(policy);
+exchange.getContext().setProperty("org.switchyard.policy.required", required, Scope.EXCHANGE).addLabels(BehaviorLabel.TRANSIENT.label());
+----
+
+*PolicyUtil* class have helper/utility methods to set/get policies and to check if a policy is required/provided.
+
+[source,java]
+----
+PolicyUtil.isRequired(Exchange exchange, Policy policy);
+PolicyUtil.isProvided(Exchange exchange, Policy policy);
+----
+
+=== Transaction policies
+The provided Transaction policies are those defined and supported by the link:SCA specification[http://docs.oasis-open.org/opencsa/sca-policy/sca-policy-1.1-spec-csprd03.html#_Toc311121490]
+
+==== Implementation policies
 These transaction policies are set at the implementation (components definition) and define the transactiona requirement for the logic contained in the component.
 
 * *managedTransaction.Global*: Uses any existing global transaction propagated from the client or else begins and complete a new global transaction.
 * *managedTransaction.Local*: SwitchYard runtime begins and complete a Local Transaction Containment for each Exchange.
-* *noManagedTransaction*: SwitchYard runtime doesn't start any transaction. Application has a responsibility to manage the transaction boundaries. This happens when
+* *noManagedTransaction*: SwitchYard runtime doesn't start any transaction. Application has a responsibility to manage the transaction boundaries.
 
-=== Interaction policies
+image:implementation_policies.png[Implementation policies]
+
+Implementation policies are set on the component.
+
+==== Interaction policies
 These transaction policies are set at the interaction (wire) and defines what logic drives the propagation or not of the existing transactional context.
 
 * *propagatesTransaction*: Any existing transaction should continue and be used during the invocation.
 * *suspendsTransaction*: Any existing transaction should be suspended before the invocation takes place.
 
-== Create at input point (with request)
+image:interaction_policies.png[Interaction policies]
 
-== Transaction propagation
+Interaction policies are set on the wire, so you need to select the component`s reference.
 
-=== Suspend and resume
+==== What happens when you select None as implementation or interaction policies?
+QUESTION: What happens when you select None as a policy??? Implement and test, and show errors.
 
-== Transactional resources
+=== Create at input point (with request)
+while SwithYard services will be called through one of it's service bindings, this dictates where is the transaction created. Transactions are first created in the first "wire" after the binding, so, at all effects it will be created as soon as SwitchYard starts executing the service, and before any client code, so eveything that service designers can do will fall into a transaction.
+SwitchYard will always start a transaction, if the first component being invoked is configured to:
 
-== Transaction propagation via SCA
+* Use LocalTransactions
+* Use GlobalTransactions and there is not an active transaction yet.
+
+If None is selected, a transaction will not be created.
+QUESTION: Is above sentence true???
+
+=== Transaction propagation
+Transaction propagation will be honoured, if defined, for every interaction between service components (if these components are transactional) as well as with external services being called (if these services are called via a transactional resource).
+
+==== Transaction propagation via SCA
+QUESTION: Is this a JTA enabled transactioanl resource??? Are transactions propagated between containers???
+
+=== Transactional resources
+Current transactional resources existing in SwitchYard are:
+
+Implementations::
+* Bean
+* Camel
+* BPMN
+* BPEL
+* Rules
+
+Bindings::
+* SCA
+* JMS
+* JCA
+* JPA
+* SQL
+* Camel
+
+QUESTION: This needs to be validated
 
 == Tips and tricks
 
 === Using transactions with EJBs for persistence
+
 
 
 // vim: set syntax=asciidoc:
