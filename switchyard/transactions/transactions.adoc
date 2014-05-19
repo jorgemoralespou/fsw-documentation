@@ -88,6 +88,39 @@ SwitchYard will always start a transaction, if the first component being invoked
 If None is selected, a transaction will not be created.
 QUESTION: Is above sentence true???
 
+=== Transaction definitions compatibility
+
+==== Implementation policy: managedTransaction.Local
+If a component defines an implementation policy of *managedTransaction.Local*, interaction policy must be set to *suspendsTransaction*, otherwise there will be an error at deployment time.
+
+
+* *suspendsTransaction*: Container will suspend the ongoing transaction, create a new one, and after execution, commit or rollback the created transaction, and resume the transaction that was suspended.
+* *propagatesTransaction: Error at deployment time.
+----
+MSC000001: Failed to start service jboss.deployment.unit."xxx.jar".SwitchYardService: org.jboss.msc.service.StartException in service jboss.deployment.unit."xxx.jar".SwitchYardService: org.switchyard.SwitchYardException: org.switchyard.SwitchYardException: SWITCHYARD012225: Implementation Policy 'managedTransaction.Local' requires 'suspendsTransaction' Interaction Policy, but it does not exist. [propagatesTransaction]
+----
+* *None: Error at deployment time.
+----
+MSC000001: Failed to start service jboss.deployment.unit."xxx.jar".SwitchYardService: org.jboss.msc.service.StartException in service jboss.deployment.unit."xxx.jar".SwitchYardService: org.switchyard.SwitchYardException: org.switchyard.SwitchYardException: SWITCHYARD012225: Implementation Policy 'managedTransaction.Local' requires 'suspendsTransaction' Interaction Policy, but it does not exist. []
+----
+
+==== Implementation policy: managedTransaction.Global
+If a component defines an implementation policy of *managedTransaction.Global*, interaction policy can be set to:
+
+* *suspendsTransaction*:  (Deploys correctly). Container will suspend the ongoing transaction, create a new one, and after execution, commit or rollback the created transaction, and resume the transaction that was suspended.
+* *propagatesTransaction*: (Deploys correctly). Container will use the same transaction as the receiving one.
+* *None*: (Deploys correctly) (Behaves???)
+
+==== Implementation policy: noManagedTransaction
+If a component defines an implementation policy of *noManagedTransaction*, interaction policy can be set to:
+
+* *suspendsTransaction*:  (Deploys correctly) (Behaves???)
+* *propagatesTransaction*: Error at deployment time.
+----
+MSC000001: Failed to start service jboss.deployment.unit."xxx.jar".SwitchYardService: org.jboss.msc.service.StartException in service jboss.deployment.unit."xxx.jar".SwitchYardService: org.switchyard.SwitchYardException: org.switchyard.SwitchYardException: SWITCHYARD012227: Implementation Policy 'noManagedTransaction' is not compatible with Interaction Policy 'propagatesTransaction'
+----
+* *None*: (Deploys correctly) (Behaves???)
+
 === Transaction propagation
 Transaction propagation will be honoured, if defined, for every interaction between service components (if these components are transactional) as well as with external services being called (if these services are called via a transactional resource).
 

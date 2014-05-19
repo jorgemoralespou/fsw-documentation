@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sy:switchyard xmlns:bean="urn:switchyard-component-bean:config:1.1" xmlns:file="urn:switchyard-component-camel-file:config:1.1" xmlns:sca="http://docs.oasis-open.org/ns/opencsa/sca/200912" xmlns:sy="urn:switchyard-config:switchyard:1.1" name="switchyard-transactions" targetNamespace="urn:org.jboss.switchyard.examples:transactions:1.0">
+  <sca:composite name="switchyard-transactions" targetNamespace="urn:org.jboss.switchyard.examples:transactions:1.0">
+    <sca:component name="TransactionalTestBean">
+      <bean:implementation.bean requires="noManagedTransaction" class="org.jboss.switchyard.examples.transactions.TransactionalTestBean"/>
+      <sca:service name="TransactionalTest">
+        <sca:interface.java interface="org.jboss.switchyard.examples.transactions.TransactionalTest"/>
+      </sca:service>
+    </sca:component>
+    <sca:service name="TransactionalTestInOnly" promote="TransactionalTestBean/TransactionalTest">
+      <sca:interface.java interface="org.jboss.switchyard.examples.transactions.TransactionalTest"/>
+      <file:binding.file name="file1">
+        <sy:operationSelector operationName="doInOnlyTransaction"/>
+        <file:directory>/tmp</file:directory>
+        <file:fileName>transaction.txt</file:fileName>
+        <file:consume/>
+      </file:binding.file>
+    </sca:service>
+  </sca:composite>
+</sy:switchyard>
