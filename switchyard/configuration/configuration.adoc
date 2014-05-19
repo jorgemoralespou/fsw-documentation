@@ -153,6 +153,14 @@ See: https://community.jboss.org/message/867080
 https://community.jboss.org/message/819215
 See: https://docs.jboss.org/author/display/SWITCHYARD/Properties
 
+== Headers and context properties
+A service may be configured based on a header or a context property.
+TODO: Document how.
+
+=== Scope for context properties
+Headers and properties are saved in the context with a Scope Label, that identifies the purpose of the header/property.
+TODO: Document more.
+
 
 == Tips and tricks
 
@@ -381,5 +389,7 @@ TestPropertyResolver.INSTANCE.getMap().put("name","value");
 This property will be set, and retrieved by any service when resolving that property.
 
 === How to make endpoints/config dynamic
+Depending on the binding it is not possible to make endpoints dynamic, due to the endpoint being a property set to the binding at activation time, and not being re-definible. These endpoint that are not dynamic are those based on HTTP transport (http, rest, soap, sca). For other services, endpoints can be altered providing endpoint properties. (Those endpoints whose binding is Camel based. Look at camel docs for this properties)
+
 
 // vim: set syntax=asciidoc:
