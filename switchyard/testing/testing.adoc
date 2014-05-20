@@ -1,7 +1,7 @@
 = Testing with FSW
 Jorge Morales <jmorales@redhat.com>
 26/03/2014
-:toc:
+:toc2:
 :toclevels: 4
 :icons: font
 :imagesdir: ./images
@@ -442,6 +442,72 @@ When we test a component invocation, we can test for the appropiate transformati
     }
 ----
 NOTE: We can use XMLUnit and XMLAssert from *org.custommonkey.xmlunit* to ease validations.
+
+or you can use HTTPMixIn:
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(
+        config = SwitchYardTestCaseConfig.SWITCHYARD_XML,
+        scanners = TransformSwitchYardScanner.class,
+        mixins = {CDIMixIn.class, HTTPMixIn.class})
+public class WebServiceTest {
+
+    private HTTPMixIn httpMixIn;
+
+    @Test
+    public void invokeOrderWebService() throws Exception {
+        // Use the HttpMixIn to invoke the SOAP binding endpoint with a SOAP input (from the test classpath)
+        // and compare the SOAP response to a SOAP response resource (from the test classpath)...
+        httpMixIn.setContentType("application/soap+xml");
+        httpMixIn.postResourceAndTestXML("http://localhost:18001/quickstart-bean/OrderService", "/xml/soap-request.xml", "/xml/soap-response.xml");
+    }
+}
+----
+
+=== Test for validations in component service
+When we test a component invocation, validations will be tested (as were tested transformations) with an invocation to the TestInvoker, as shown in the previous example.
+
+[source,java]
+----
+    ...
+
+    @ServiceOperation("ExampleService.submitOperation")
+    private Invoker serviceOperationInvocation;
+
+    @Test
+    public void testForMessageValidation() throws Exception {
+        ParamOut result =  serviceOperationInvocation
+                           .inputType(QName.valueOf("{urn:com.examaple:service:1.0"}submitOperation))
+                           .sendInOut(....)
+                           .getContent(ParamOut.class);
+        Assert....  // Assert that result is OK, so validation was OK
+    }
+----
+
+or you can use HTTPMixIn:
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(
+        config = SwitchYardTestCaseConfig.SWITCHYARD_XML,
+        scanners = TransformSwitchYardScanner.class,
+        mixins = {CDIMixIn.class, HTTPMixIn.class})
+public class WebServiceTest {
+
+    private HTTPMixIn httpMixIn;
+
+    @Test
+    public void invokeOrderWebService() throws Exception {
+        // Use the HttpMixIn to invoke the SOAP binding endpoint with a SOAP input (from the test classpath)
+        // and compare the SOAP response to a SOAP response resource (from the test classpath)...
+        httpMixIn.setContentType("application/soap+xml");
+        httpMixIn.postResourceAndTestXML("http://localhost:18001/quickstart-bean/OrderService", "/xml/soap-request.xml", "/xml/soap-response.xml");
+    }
+}
+----
 
 === Mock a service, component or reference
 Sometimes it is useful to mock a component, so it is never invoked for the shake of a test. For this, SwitchYardTestKit provides with the ability of adding, replacing or removing services.

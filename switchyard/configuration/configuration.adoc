@@ -1,7 +1,7 @@
 = Configuration
 Jorge Morales <jmorales@redhat.com>
 xx/xx/2014
-:toc:
+:toc2:
 :toclevels: 4
 :icons: font
 :imagesdir: ./images
