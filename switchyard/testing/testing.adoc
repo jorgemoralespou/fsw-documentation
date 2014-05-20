@@ -9,9 +9,6 @@ Jorge Morales <jmorales@redhat.com>
 
 Updates:
 
-* (4/Apr) Mock a service for more than 1 method invocation
-* (23/Apr) Testing a camel binding
-
 == Concepts
 
 === SwitchYardRunner
