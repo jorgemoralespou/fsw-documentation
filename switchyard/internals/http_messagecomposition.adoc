@@ -8,6 +8,9 @@ Jorge Morales <jmorales@redhat.com>
 :source-highlighter: prettify
 
 == Message composers
+For this article, there is some sample code here:
+
+* link:https://github.com/jorgemoralespou/fsw-documentation/tree/master/demos/switchyard/switchyard-quickstart-http-proxy[Quickstart-http-proxy]
 
 === HTTP Message flow in Http Gateway
 Here we will find a description of what is happening at the message composition time in a call to a SwitchYard application through an HTTP binding and having one call to an external reference through an HTTP binding.
