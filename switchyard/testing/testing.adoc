@@ -440,7 +440,7 @@ When we test a component invocation, we can test for the appropiate transformati
 ----
 NOTE: We can use XMLUnit and XMLAssert from *org.custommonkey.xmlunit* to ease validations.
 
-or you can use HTTPMixIn:
+or you can use HTTPMixIn (You have to add the TransformSwitchYardScanner scanner):
 
 [source,java]
 ----
@@ -483,14 +483,14 @@ When we test a component invocation, validations will be tested (as were tested 
     }
 ----
 
-or you can use HTTPMixIn:
+or you can use HTTPMixIn (You have to add the ValidateSwitchYardScanner scanner):
 
 [source,java]
 ----
 @RunWith(SwitchYardRunner.class)
 @SwitchYardTestCaseConfig(
         config = SwitchYardTestCaseConfig.SWITCHYARD_XML,
-        scanners = TransformSwitchYardScanner.class,
+        scanners = ValidateSwitchYardScanner.class,
         mixins = {CDIMixIn.class, HTTPMixIn.class})
 public class WebServiceTest {
 
@@ -1056,6 +1056,10 @@ You can test a service like the one defined below that has a camel binding.
 Sometimes we need to add some procedures before test is performed. JUnit @Before operation is invoked right after the application is deployed, however, it can't be used if you expect something before deploy. We have @BeforeDeploy annotation for this purpose.
 
 // image::fsw-governance.png[]
+
+
+=== Testing a Web Service with Policies defined in it or a SOAP CXF interceptor
+If you need to do unit testing for a service with policies defined in it, or a custom SOAP cxf interceptor, you will not be able to do it at the moment unless you run the tests against a real "running" container.
 
 
 == References
