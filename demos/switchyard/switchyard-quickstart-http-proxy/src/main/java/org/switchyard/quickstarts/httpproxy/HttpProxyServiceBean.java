@@ -7,6 +7,7 @@ import org.switchyard.Context;
 import org.switchyard.Exchange;
 import org.switchyard.HandlerException;
 import org.switchyard.Message;
+import org.switchyard.Property;
 import org.switchyard.Scope;
 import org.switchyard.component.bean.Reference;
 import org.switchyard.component.bean.ReferenceInvocation;
@@ -16,6 +17,7 @@ import org.switchyard.component.common.label.EndpointLabel;
 import org.switchyard.component.http.composer.HttpComposition;
 import org.switchyard.component.http.composer.HttpContextMapper;
 import org.switchyard.component.http.composer.HttpRequestInfo;
+import org.switchyard.quickstarts.httpproxy.CopyAllHttpHeadersHttpContextMapper.MapperLabel;
 
 @Service(HttpProxyService.class)
 public class HttpProxyServiceBean implements HttpProxyService {
@@ -49,6 +51,9 @@ public class HttpProxyServiceBean implements HttpProxyService {
       // We set information for outgoing request
       try {
          invocation = referenceInvoker.newInvocation();
+         
+         // Copies properties from contexts
+         exchange.getMessage().getContext().mergeInto(invocation.getMessage().getContext());
          
          copyRequestInfo(requestInfo, invocation.getMessage().getContext(), baseURL);
          

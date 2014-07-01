@@ -13,13 +13,13 @@
     <sca:reference name="RealHttpService" multiplicity="0..1" promote="HttpProxyServiceBean/RealHttpService">
       <sca:interface.java interface="org.switchyard.quickstarts.httpproxy.HttpProxyService"/>
       <camel:binding.uri name="http_outbound" configURI="http://localhost:8080/">
-        <camel:contextMapper includes="CamelHttp.*"/>
+        <camel:contextMapper class="org.switchyard.quickstarts.httpproxy.CopyAllHttpHeadersCamelContextMapper"/>
       </camel:binding.uri>
     </sca:reference>
     <sca:service name="HttpProxyService" promote="HttpProxyServiceBean/HttpProxyService">
       <sca:interface.java interface="org.switchyard.quickstarts.httpproxy.HttpProxyService"/>
       <http:binding.http name="http_inbound">
-        <http:contextMapper includes="base_url"/>
+        <http:contextMapper class="org.switchyard.quickstarts.httpproxy.CopyAllHttpHeadersHttpContextMapper"/>
         <http:contextPath>http</http:contextPath>
       </http:binding.http>
     </sca:service>
