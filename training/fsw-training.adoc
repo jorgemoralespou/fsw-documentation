@@ -39,6 +39,162 @@ FSW Training
  * Extensions 
 |=======
 
+== SwitchYard - SCA
+
+ SwitchYard is a component-based development framework focused on building structured, maintainable services and applications using the concepts and best practices of SOA. It works with Apache Camel to provide a fast, simple, flexible integration runtime with comprehensive connectivity and transports. A uniform application model augments Apache Camel, joining Java EE, BPM, rules, orchestration, and routing into a cohesive development model and runtime. Common functionality and cross-cutting concerns - validation, transformation and policy - are isolated from business logic and handled declaratively. This ensures consistency and eliminates duplication, offering developers a clear view of the structure and relationships of services in an integration application.
+
+image::app.jpg[SwitchYard application]
+
+== Composite
+A composite is displayed as a light blue rectangle and represents the boundary between what's inside your application and what's outside your application. A SwitchYard application consists of exactly one composite that has a name and a targetNamespace. The targetNamespace value is important as it allows names defined locally in the application (e.g. service names) to be qualified and unique within a SwitchYard runtime.
+
+image::composite.jpg[composite]
+
+[source,xml]
+----
+<sca:composite name="example" targetNamespace="urn:example:switchyard:1.0">
+</sca:composite>
+----
+
+== Component
+A component is a modular container for application logic and consists of the following:
+
+* 0 or 1 component service definitions
+* 0 to many component reference definitions
+* 1 implementation
+
+Services and references allow a component to interact with other components, while the implementation provides the actual logic for providing and/or consuming services.
+
+image::component.jpg[component]
+
+[source,xml]
+----
+<sca:component name="Routing">
+</sca:component>
+----
+
+== Implementation
+An implementation acts as the 'brain' of a service component and it is how implement your application logic. The following implementation options are available:
+
+* *Bean*: allows a CDI Bean to consume or provide services using annotations.
+* *Camel*: EIP-style routing and service composition using the XML or Java DSL in Apache Camel.
+* *BPMN 2*: service orchestration and human task integration expressed as BPMN 2 and executed using jBPM.
+* *BPEL Process*: web service orchestration using the OASIS Business Process Execution Language.
+* *Rules*: decision services based on Drools.
+
+Implementations are private to a component, which means external consumers and providers are not aware of the details of a component's implementation (implementation-hiding).  All interactions with other components within an application and with external services are handled through component services and references.
+
+image::implementations.jpg[implementation]
+
+[source,xml]
+----
+<sca:component name="Routing">
+   <camel:implementation.camel>
+      <camel:xml path="RoutingService.xml"/>
+   </camel:implementation.camel>
+</sca:component>
+----
+
+== Component Service
+A component service is used to expose the functionality of an implementation as a service. All component services have a contract, which can be a Java interface, WSDL portType definition, or a set of named data types (interface.esb). Component services are private to an application, which means a component service can only be invoked by other components in the same application. In order to expose a component service to consumers external to the application, a component service can be 'promoted' to a composite service. A component service can be promoted multiple times to create different composite services.
+
+image::component-service.jpg[Component service]
+
+[source,xml]
+----
+<sca:component name="Routing">
+   <camel:implementation.camel>
+      <camel:xml path="route.xml"/>
+   </camel:implementation.camel>
+   <sca:service name="ServiceA">
+      <sca:interface.java interface="org.example.ServiceA"/>
+   </sca:service>
+</sca:component>
+----
+
+== Composite Service
+A composite service represents an application service which is visible to other applications. A composite service can only be realized by promoting a component service within the application. The name and the interface of the composite service can be different from the component service. If the interface, or contract, of the composite service is different from the component service, be aware that a transformation may be required to map between the types defined in each interface. In our example application, the component service has a Java interface while the composite service has a WSDL interface. This means we would need to declare a transformer which maps between XML and Java to resolve the data type mismatch.
+
+image::composite-service.jpg[Composite service]
+
+[source,xml]
+----
+<sca:composite name="example" targetNamespace="urn:example:switchyard:1.0">
+   <sca:service name="ServiceA" promote="Routing/ServiceA">
+      <sca:interface.wsdl interface="ServiceA.wsdl#wsdl.porttype(ServiceAPortType)"/>
+   </sca:service>
+</sca:composite>
+----
+
+== Service Binding
+A service binding is used to define an access method for a composite service. Composite services can have multiple bindings, which allows a single service to be accessed in different ways. In most cases, a service binding represents a protocol/transport adapter (e.g. SOAP, JMS, REST). An important exception to this rule is the SCA binding, which allows services across applications in the same runtime to be wired together in memory. Regardless of the underlying binding details, a binding must always be used to facilitate inter-application communication in SwitchYard.
+
+image::service-binding.jpg[Service binding]
+
+[source,xml]
+----
+<sca:composite name="example" targetNamespace="urn:example:switchyard:1.0">
+   <sca:service name="ServiceA" promote="Routing/ServiceA">
+      <sca:interface.wsdl interface="ServiceA.wsdl#wsdl.porttype(ServiceAPortType)"/>
+      <soap:binding.soap>
+        <soap:wsdl>ServiceA.wsdl</soap:wsdl>
+      </soap:binding.soap>
+   </sca:service>
+</sca:composite>
+----
+
+== Component Reference
+A component reference allows a component to consume other services. A component reference can be wired to a service offered by another component in the same application or it can be wired to services outside the application via a composite reference. Similar to component services, all component references have a contract with allows a component to invoke services without knowing implementation or binding details. The picture below shows an example of wiring a reference on the Routing component to a service offered by the Bean component.
+
+image::component-reference.jpg[Component reference]
+
+[source,xml]
+----
+<sca:component name="Routing">
+   <camel:implementation.camel>
+      <camel:xml path="route.xml"/>
+   </camel:implementation.camel>
+   <sca:service name="ServiceA">
+      <sca:interface.java interface="org.example.ServiceA"/>
+   </sca:service>
+   <sca:reference name="ServiceC">
+      <sca:interface.java interface="org.example.ServiceC"/>
+   </sca:reference>
+</sca:component>
+----
+
+== Composite Reference
+A composite reference allows a component reference to be wired to a service outside the application. Similar to composite services, bindings are used with composite references to specify the communication method for invoking the external service.
+
+image::composite-reference.jpg[Composite reference]
+
+[source,xml]
+----
+<sca:composite name="example" targetNamespace="urn:example:switchyard:1.0">
+   <sca:reference name="ReferenceB" multiplicity="0..1" promote="Routing/ServiceB">
+      <sca:interface.java interface="org.example.ServiceB"/>
+   </sca:reference>
+</sca:composite>
+----
+
+== Reference Bindings
+A reference binding is used to define an access method for an external service via a composite reference. Unlike service bindings, there can only be one binding for each composite reference. The set of bindings available for references is identical to the set of bindings available for services, although the configuration values for a given binding may be different depending on whether it's used as a service binding or a reference binding.
+
+image::reference-binding.jpg[Reference binding]
+
+[source,xml]
+----
+<sca:composite name="example" targetNamespace="urn:example:switchyard:1.0">
+   <sca:reference name="ReferenceB" multiplicity="0..1" promote="Routing/ServiceB">
+      <sca:interface.java interface="org.example.ServiceB"/>
+         <jms:binding.jms>
+         <jms:queue>MyQueue</jms:queue>
+         <jms:connectionFactory>#ConnectionFactory</jms:connectionFactory>
+      </jms:binding.jms>
+   </sca:reference>
+</sca:composite>
+----
+
 == Switchyard - Components
  **  Interfaces: wsdl, java, esb
  **  Bean (Java)
@@ -498,11 +654,16 @@ Transformations can be done in a variety of ways in camel:
  TODO: Create this
 
 == SwitchYard - Validations (Java validations, XML Validation)
+Validation feature provides a functionality for message content validation.
 
 * Different implementations for validators:
 ** Java
 ** XML
 ** Other (to be coming...)
+
+We often need to perform message validation before processing its data in service logic, but implementing the validation logic directly in the consumer or provider pollutes the service logic and can lead to tight coupling.  SwitchYard allows for the validation logic to be declared outside the service logic and injected into the mediation layer at runtime.
+
+Validation of message content is specified in the descriptor of your SwitchYard application (switchyard.xml). The qualified name of the type being validated name is defined along with the validator implementation.
 
 == SwitchYard - Java validations
 
@@ -533,6 +694,57 @@ There is a helper class for validation called: *org.switchyard.validate.BaseVali
 == SwitchYard - Properties
 
  TODO: Create this
+
+== SwitchYard - Environment Properties
+
+Environment properties allow you to replace any attribute or element value in switchyard.xml with a property from the runtime environment. The syntax for a replaced token is "${varName}" where "varname" is your property name. The configuration layer in SwitchYard is configured with instances of PropertyResolver, which are used to resolve the value of a property based on its name.
+
+=== Where to define Environment Properties
+Property values are resolved from the following locations:
+
+* System properties passed by -D option of Java VM like "-Dproperty.name=property.value"
+* System environment variables, referenced with an "env." prefix, for example: env.PATH
+* Unit test properties
+* JBoss AS7 properties, including access into the SecurityVault
+* Domain properties in switchyard.xml
+* SCA property definitions in the composite or component
+
+=== Property overriding
+SwitchYard property resolver scans the property in following order.
+
+* System properties and System environment variables
+* Unit test properties
+* JBoss AS7 properties
+* Domain properties
+* SCA composite properties
+* SCA component properties
+
+ You can specify the default property value with "${propertyName:defaultValue}" syntax where "propertyName" is the name of property.
+
+=== Property escaping
+Sometimes, the desired value for a property needs to be in the same "dollar curly" syntax which triggers SwitchYard's property substitution. This can be problematic because in these cases, you want SwitchYard to leave the configured value alone. To accomplish this, use a "double dollar curly" syntax instead.
+
+[source,xml]
+----
+<foo value="${prop}"/>
+<bar value="$${prop}"/>
+----
+
+Assuming the value "prop" is a resolvable property (say, equal to "test"), the value attribute of the foo element will be that value ("test").  However, the value attribute of the bar element will be "${test}" (with one dollar sign).
+
+== SwitchYard - Implementation Properties
+Implementation properties allow you to inject one or more property values into a service implementation.
+
+This is based on the property support in the SCA assembly spec. Since the property is injected into service implementation logic, the injection mechanism itself is unique to each implementation type. 
+
+* *Java*: injected using @Property into a CDI bean
+* *Camel*: wired into Camel properties component and accessible in a Camel route using Camel's own varName property notation
+* *BPEL*: mapped into process variables via an <assign> with using resolveProperty() XPath custom function
+* *BPMN 2*: inserted into process variables by data input associations
+* *Drools*: available in a global map
+
+ TODO: Create this
+
 
 == SwitchYard - Policies (transaction, )
 
