@@ -1,0 +1,623 @@
+FSW Training
+============
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:description: FSW training
+:revdate: 2014-07-17
+:revnumber: 0.1
+:icons: font
+:imagesdir: ./images
+:deckjs_theme: web-2.0
+:deckjs_transition: horizontal-slide
+//:pygments:
+//:pygments_style: native
+:scrollable:
+//:linkcss:
+//:count_nested:
+
+== Contents
+
+* SwitchYard
+* RTGov
+* DTGov
+
+== SwitchYard
+
+[width="100%", cols=",asciidoc"]
+|=======
+| image:switchyard.png[] | * SCA (Service, component, reference, binding)
+ * Components (Service implementations)
+ * Bindings (Gateways)
+ * Transformations (Java, JAXB, JSON, Smooks, XSLT, ...)
+ * Validations (Java validations, XML Validation)
+ * Properties
+ * Policies (transaction, )
+ * Security
+ * Clustering
+ * RemoteInvoker
+ * Serialization
+ * Extensions 
+|=======
+
+== Switchyard - Components
+ **  Interfaces: wsdl, java, esb
+ **  Bean (Java)
+ **  Camel (java, xml)
+ **  BPEL (XPath functions)
+ **  BPM
+ **  Rules (Knowledge services)
+
+== Switchyard - Interfaces
+
+ TODO: Create this
+
+== Switchyard - Bean Component
+
+ TODO: Create this
+
+== Switchyard - Camel Component
+
+ TODO: Create this
+
+== Switchyard - BPEL Component
+
+ TODO: Create this
+
+== Switchyard - BPM Component
+
+ TODO: Create this
+
+== Switchyard - Rules Component
+
+ TODO: Create this
+
+== Switchyard - Binding/Gateways
+ ** Http based
+ ***  SOAP
+ ***  RESTEasy
+ ***  HTTP
+ ** Camel based
+ *** JPA
+ *** JCA
+ *** JMS
+ *** SQL
+ *** File
+ *** FTP FTPS SFTP
+ *** TCP UDP
+ *** Quartz
+ *** Timer
+ *** SEDA
+ ** SCA
+ ** Camel URI*
+ ** MessageComposers/MessageContext
+ ** Operation selection
+ ** Throttling
+
+== Switchyard - SOAP Binding
+
+ TODO: Create this
+
+== Switchyard - RESTEasy Binding
+
+ TODO: Create this
+
+== Switchyard - HTTP Binding
+
+ TODO: Create this
+
+== Switchyard - JPA Binding
+
+ TODO: Create this
+
+== Switchyard - JCA Binding
+
+ TODO: Create this
+
+== Switchyard - JMS Binding
+
+ TODO: Create this
+
+== Switchyard - SQL Binding
+
+ TODO: Create this
+
+== Switchyard - File Binding
+
+ TODO: Create this
+
+== Switchyard - FTP FTPS SFTP Binding
+
+ TODO: Create this
+
+== Switchyard - TCP UDP Binding
+
+ TODO: Create this
+
+== Switchyard - Quartz Binding
+
+ TODO: Create this
+
+== Switchyard - Timer Binding
+
+ TODO: Create this
+
+== Switchyard - SEDA Binding
+
+ TODO: Create this
+
+== Switchyard - SCA Binding
+
+ TODO: Create this
+
+== Switchyard - Camel URI Binding
+
+ TODO: Create this
+
+== Switchyard - Message Composers
+
+ TODO: Create this
+
+== Switchyard - Operation selection
+
+ TODO: Create this
+
+== Switchyard - Throttling
+
+ TODO: Create this
+
+== SwitchYard - Transformations (Java, JAXB, JSON, Smooks, XSLT, ...)
+
+When is a transformation required:
+
+ When origin type and destination type of a "wire connection" is not of the same type, and implicit type conversion (provided by Camel type converters) can not convert between both types.
+
+ Declarative transformation only kicks in when the runtime detects that the message type is different between the consumer and provider contracts.
+
+The tooling reflects this as well, which is why if there are no interactions where contract types differ, then you cannot create a transformer. There are three scenarios in SY where the contract types can differ and require a transformation:
+ 
+1. A composite service interface is different from the component service interface it promotes.
+2. A component reference interface is different from the component service interface it is wired to.
+3. A composite reference interface is different from the component reference interface it promotes.
+
+* Different implementations for transformations:
+** Java
+** JAXB
+** JSON
+** Smooks
+** XSLT
+** Transformations in a Camel component
+** Other (coming next: Dozer,...)
+
+== SwitchYard - Transformations - Content Type Names
+
+Since transformations occur between named types (i.e. from type A, to type B), it's important to understand how the type names are derived. The type of the message is determined based on the service contract, which can be WSDL or Java.
+
+For WSDL interfaces, the message name is determined based on the fully-qualified element name of a WSDL message.  Take the following WSDL definition:
+
+[source,xml]
+----
+<definitions xmlns:tns="urn:switchyard-quickstart:bean-service:1.0">  
+  <message name="submitOrder">
+    <part name="parameters" element="tns:submitOrder"/>
+  </message>
+  <portType name="OrderService">
+    <operation name="submitOrder">
+      <input message="tns:submitOrder"/>
+    </operation>
+  </portType>
+</definitions>
+----
+
+This would yield the following message type name based on the message element name defined in the WSDL:
+
+[source,java]
+----
+{urn:switchyard-quickstart:bean-service:1.0}submitOrder
+----
+
+When Java interfaces are used for the service contract, the message name consists of the full package name + the class name, prefixed with "java:".
+
+[source,java]
+----
+package org.switchyard.example;
+public interface OrderService {
+    void submitOrder(Order order);
+}
+----
+
+The message type name for the submitOrder method in this Java interface would be *"java:org.switchyard.example.Order"*.  
+
+Occasionally, it can be useful to override the default operation name generated for a Java interface. The *@OperationTypes* annotation provides this capability by allowing the user to specify the input, output, and/or fault type names used for a Java service interface. 
+
+For example, if we wanted to accept XML input content without any need for transformation to a Java object model, the OrderService interface could be changed to look like this:
+
+[source,java]
+----
+package org.switchyard.example;
+public interface OrderService {
+    @OperationTypes(in = "{urn:switchyard-quickstart:bean-service:1.0}submitOrder")
+    void submitOrder(String orderXML);
+}
+----
+
+Aside from short-circuiting the requirement for transformation, this annotation can be useful if you want to maintain tight control over the names used for message content.
+
+== SwitchYard - Transformations
+
+Required transformations are automatically detected by IDE, but, if missing, can be created/deleted/recreated manually:
+
+image::transformers/no_missing_transformer.png[All required validators have been added]
+
+If you remove all/any of the transformers, you will be able to create missing required transformers:
+
+image::transformers/required_transformers.png[Create required transformer]
+
+A new dialog will let you create a new transformer:
+
+image::transformers/new_transformer_all.png[New Transformer]
+
+== SwitchYard - Transformations - Java
+Java transformer let you do any kind of transformation using Java for this purpose. There are two methods available for creating a Java-based transformer in SwitchYard:
+
+1. Implement the *org.switchyard.transform.Transfomer* interface and add a *<transform.java>* definition to your switchyard.xml.
+2. Annotate one or more methods on your Java class with *@Transformer*.
+
+ When using the @Transformer annotation, the SwitchYard maven plugin will automatically generate the <transform.java> definition(s) for you and add them to the switchyard.xml packaged in your application.
+
+Implementing Java transformations is just a matter of creating a new (Java) Transformer on the SwitchYard application:
+
+image::transformers/new_transformer.png[New validator]
+
+And selecting Java as the type of transformer you want implementing class or bean.
+
+image::transformers/new_java_transformer.png[Create a Java transformer]
+
+It will create the appropiate transformer class/bean with the default annotated methods:
+
+image::transformers/java_transformer.png[Java Transformer class]
+
+ The optional from and to elements of the @Transformer annotation can be used to specify the qualified type name used during transformer registration.  If not supplied, the full class name of the method parameter will be used as the from type and the full class name of the return type will be used as the to type.
+
+And the corresponding configuration in the switchyard.xml file:
+
+image::transformers/transformer_switchyard_xml.png[Transformers defined in switchyard.xml file]
+
+ The CDI bean name specified by @Named annotation is used to resolve transformer class. If you don't specify, then class name of the transformer is used instead.
+
+== SwitchYard - Transformations - JAXB
+
+The JAXB transformer allows you to perform Java to XML (and XML to Java) transformations using JAXB (XML marshalling and unmarshalling).
+
+ JAXB Java models can be generated from an XML Schema using XJC, or from a WSDL using tools like wsconsume, or from within JBDS IDE with "JAXB`s JAXB classes from Schema" or "SwitchYard`s Java Files from WSDL".
+
+JAXB Transformer requires a *to* and *from* with one Java type and one QNamed XML type, depending on whether you're performing a Java to XML or XML to Java transformation.
+
+[source,java]
+----
+@XmlElementDecl(namespace = "http://com.acme/orders", name = "create")
+public JAXBElement<CreateOrder> createOrder(CreateOrder value) {
+    return new JAXBElement<Order>(_CreateOrder_QNAME, CreateOrder.class, null, value);
+}
+----
+
+And the corresponding configuration in the switchyard.xml file:
+
+image::transformers/jaxb_transformer_switchyard_xml.png[JAXB transformers defined in switchyard.xml file]
+
+
+== SwitchYard - Transformations - JSON
+
+The JSON transformer provides a basic mapping facility between POJOs and JSON (JSON marshalling and unmarshalling). The JSON specification of the transformer requires a to and from specification with one Java type and one QNamed JSON type, depending on whether you're performing a Java to JSON or JSON to Java transformation.
+
+[source,java]
+----
+<transforms>
+   <xform:transform.json from="java:org.switchyard.quickstarts.transform.json.OrderAck" 
+                         to="{urn:switchyard-quickstart:transform-json:1.0}orderResponse"/>
+   <xform:transform.json from="{urn:switchyard-quickstart:transform-json:1.0}order" 
+                         to="java:org.switchyard.quickstarts.transform.json.Order"/>
+</transforms>
+----
+
+== SwitchYard - Transformations - Smooks
+
+There are three distinct transformation models available with Smooks in SwitchYard:
+
+1. XML to Java :  Based on a standard Smooks Java Binding configuration.
+2. Java to XML:   Based on a standard Smooks Java Binding configuration.
+3. Smooks :  This is a "normal" Smooks transformation in which the developer must define which Smooks filtering Result is to be exported back to the SwitchYard Message as the transformation result.
+
+Smooks transformations are declared by including a <transform.smooks> definition in switchyard.xml.
+
+[source,xml]
+----
+<transform.smooks config="/smooks/OrderAck_XML.xml"
+                  from="java:org.switchyard.quickstarts.transform.smooks.OrderAck"
+                  to="{urn:switchyard-quickstart:transform-smooks:1.0}submitOrderResponse"
+                  type="JAVA2XML"/>
+----
+The config attribute points to a Smooks resource containing the mapping definition.  The type attribute can be one of SMOOKS, XML2JAVA, or JAVA2XML.
+
+== SwitchYard - Transformations - XSLT
+
+The XSLT transformer allows you to perform a transformation between 2 XML types, using an XSLT. It is configured simply by specifying the to and from QNames, as well as the path to the XSLT to be applied.
+
+[source,xml]
+----
+<transforms>
+   <transform.xslt xmlns="urn:switchyard-config:transform:1.0" 
+                   from="{urn:switchyard-quickstart:transform-xslt:1.0}order" 
+                   to="{urn:switchyard-quickstart:transform-xslt:1.0}orderAck" 
+                   xsltFile="xslt/order.xslt"/>
+</transforms>
+----
+
+And an xslt file is requierd for transformation:
+[source,xml]
+----
+<?xml version="1.0"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+	version="1.0">
+	<xsl:template match="/">
+		<orders:orderAck xmlns:orders="urn:switchyard-quickstart:transform-xslt:1.0">
+			<xsl:for-each select="orders:order">
+				<orderId>
+					<xsl:value-of select="orderId" />
+				</orderId>
+				<accepted>
+					<xsl:choose>
+						<xsl:when test="(itemId = 'BUTTER') and (quantity &lt;= 200)">
+							true
+						</xsl:when>
+						<xsl:otherwise>
+							false
+						</xsl:otherwise>
+					</xsl:choose>
+				</accepted>
+				<status>
+					<xsl:choose>
+						<xsl:when test="(itemId = 'BUTTER') and (quantity &lt;= 200)">
+							Order Accepted
+						</xsl:when>
+						<xsl:when test="itemId != 'BUTTER'">
+							No Such Item:
+							<xsl:value-of select="itemId" />
+						</xsl:when>
+						<xsl:when test="quantity &gt; 200">
+							Not Enough Stock
+						</xsl:when>
+						<xsl:otherwise>
+							UNKNOWN
+						</xsl:otherwise>
+					</xsl:choose>
+				</status>
+			</xsl:for-each>
+		</orders:orderAck>
+	</xsl:template>
+</xsl:stylesheet>
+----
+
+
+== SwitchYard - Transformations - Transformations in a Camel component
+
+Transformations can be done in Camel component. Camel provides with many means of doing tranformations: 
+
+=== XSLT
+
+[source,java]
+----
+   public void configure() throws Exception {
+      from("direct:start")
+            .to("xslt:book.xslt");
+   }
+----
+
+==== XQuery
+
+[source,java]
+----
+   public void configure() throws Exception {
+      from("direct:start")
+         .transform(xquery("<books>{for $x in /bookstore/book where $x/price>30 order by $x/title return $x/title}</books>"));
+   }
+----
+
+=== JAXB
+
+[source,java]
+----
+    public void configure() throws Exception {
+        DataFormat myJaxb = new JaxbDataFormat("org.camelcookbook.transformation.myschema");
+
+        from("direct:marshal")
+            .marshal(myJaxb)
+            .to("mock:marshalResult");
+
+        from("direct:unmarshal")
+            .unmarshal(myJaxb)
+            .to("mock:unmarshalResult");
+    }
+----
+
+=== JSON
+
+[source,java]
+----
+    public void configure() throws Exception {
+        from("direct:marshal")
+            .marshal().json()
+            .to("mock:marshalResult");
+
+        from("direct:unmarshal")
+            .unmarshal().json()
+            .to("mock:unmarshalResult");
+    }
+----
+
+=== XMLJSON
+
+[source,java]
+----
+    public void configure() throws Exception {
+        from("direct:marshal")
+            .marshal().xmljson()
+            .to("mock:marshalResult");
+
+        from("direct:unmarshal")
+            .unmarshal().xmljson()
+            .to("mock:unmarshalResult");
+
+        XmlJsonDataFormat xmlJsonFormat = new XmlJsonDataFormat();
+        xmlJsonFormat.setRootName("bookstore");
+        xmlJsonFormat.setElementName("book");
+        xmlJsonFormat.setExpandableProperties(Arrays.asList("author", "author"));
+
+        from("direct:unmarshalBookstore")
+            .unmarshal(xmlJsonFormat)
+            .to("mock:unmarshalBookstoreResult");
+    }
+----
+
+See https://github.com/CamelCookbook/camel-cookbook-examples/tree/master/camel-cookbook-transformation[Camel developer cookbook Transformation Chapter source code]
+
+== SwitchYard - Transformations - Transformations in a Camel component (II)
+Transformations can be done in a variety of ways in camel:
+
+[width="100%", cols="asciidoc,"]
+|=======
+|http://camel.apache.org/content-enricher.html[Content Enricher EIP] |image:transformers/ContentEnricher.gif[Content Enricher EIP]
+|http://camel.apache.org/message-translator.html[Message Translator EIP] |image:transformers/MessageTranslator.gif[Message Translator EIP]
+|http://camel.apache.org/content-filter.html[Content Filter EIP] |image:transformers/ContentFilter.gif[Content Filter EIP]
+|http://camel.apache.org/normalizer.html[Normalizer EIP] |image:transformers/Normalizer.gif[Normalizer EIP]
+|http://camel.apache.org/templating.html[Templating]|
+|=======
+
+
+== SwitchYard - Transformations - Other
+
+ TODO: Create this
+
+== SwitchYard - Validations (Java validations, XML Validation)
+
+* Different implementations for validators:
+** Java
+** XML
+** Other (to be coming...)
+
+== SwitchYard - Java validations
+
+Implementing Java validation is just a matter of creating a new (Java) Validator on the SwitchYard application:
+
+image::validators/new_validator.png[New validator]
+
+And selecting type you want to validate and implementing class or bean.
+
+image::validators/java_validator.png[Create a Java validator]
+
+It will create the appropiate configuration in the switchyard.xml file:
+
+image::validators/validator_switchyard_xml.png[Validator defined in switchyard.xml file]
+
+And the appropiate class/bean needs to be created (manually), with the correspongin annotations (*@Named* and *@Validator*):
+
+image::validators/annotated_validator.png[Annotated validator]
+
+Validation methods should return an instance of *import org.switchyard.validate.ValidationResult*.
+
+There is a helper class for validation called: *org.switchyard.validate.BaseValidator* that provides with methods for *validResult()* and *invalidResult(...)*
+
+== SwitchYard - XML validations
+
+ TODO: Create this
+
+== SwitchYard - Properties
+
+ TODO: Create this
+
+== SwitchYard - Policies (transaction, )
+
+ TODO: Create this
+
+== SwitchYard - Security
+
+ TODO: Create this
+
+== SwitchYard - Clustering
+
+ TODO: Create this
+
+== SwitchYard - RemoteInvoker
+
+ TODO: Create this
+
+== SwitchYard - Serialization
+
+ TODO: Create this
+
+== SwitchYard - Extensions
+
+ TODO: Create this
+
+== SwitchYard - Use cases:
+ * Asynchronous processing: How to build, deploy, and manage a simple Camel route that communicates with ActiveMQ queues
+ * Synchronous processing: How to build, deploy, and manage a simple service
+
+ TODO: Create this
+
+== SwitchYard - Debugging an application
+ * Message tracing
+ * Exchange interceptors
+ * Auditing exchanges
+
+ TODO: Create this
+
+== SwitchYard - Testing SwitchYard application
+ * Creating your own camel endpoint/component (Extensions)
+
+ TODO: Create this
+
+== SwitchYard - Advanced topics
+ * Distributed transactions in FSW - what is possible and what is not possible (e.g. can a splitter/aggregator ever be transactional)
+
+ TODO: Create this
+
+== RTGov
+
+ TODO: Create this
+
+
+== DTGov
+
+ * App building
+ * life-cycle management
+ * Deployment
+ * Integrating the build/test/deployment process into a maven based build engine
+
+ TODO: Create this
+
+== Development
+ 
+ * JBoss Developer Studio + IS plugins
+ * Maven
+ * Project structure (single project, multiproject, war, ear,...)
+
+ TODO: Create this
+
+
+== Operations
+ 
+ * Installation (installer, silent,...)
+ * Starting/stopping servers (server services)
+ * Users
+ * Multinode configuration (Multiple servers in one box
+ * Databases
+ * Management (Console, CLI, JMX, BPEL Console)
+ * Monitoring
+ * Troubleshooting
+
+ TODO: Create this
+
+== Thank you
+
+That's all.
+
