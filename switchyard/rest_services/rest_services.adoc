@@ -1,0 +1,29 @@
+= Rest services
+Jorge Morales <jmorales@redhat.com>
+xx/xx/2014
+:toc2:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+
+== How to develop a Rest service in SwitchYard
+
+For rest services, you need to have a Rest Service interface that you need to expose with a Rest binding. A Rest Service interface is a Java interface annotated with JAX-RS annotations.
+
+image:service_interface.png["Rest service interface"]
+
+
+image:service_binding.png["Rest service binding"]
+
+The service gets published in:
+----
+http://SERVER_HOST:SERVER_PORT/{context-path}/{service-path}/{operation-path}
+----
+
+For example, for the addItems operation shown above, the path where the operation will be accesible is:
+----
+
+----
+
+
+// vim: set syntax=asciidoc:

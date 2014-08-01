@@ -50,7 +50,7 @@ SwitchYardTestKit represents the runtime state of the deployed SwitchYard test a
 === SwitchYardTestCaseConfig
 The SwitchYardTestCaseConfig annotation is optional. You can use it control the behavior of the SwitchYardRunner:
 
-config:: Enables you to add specific testing tools to your test case. Each TestMixIn is a composition-based method that provides customized testing tools for service implementations, gateway bindings, and transformers. When a TestMixIn is annotated on a test class, the SwitchYardRunner handles all the initialization and cleanup (lifecycle) of the TestMixIn instances. It is also possible to manually create and manage TestMixIn instances within your test class if you are not using the SwitchYardRunner.
+config:: Allows the specification of a SwitchYard XML configuration file (switchyard.xml) for the test. The SwitchYardRunner will attempt to load the specified configuration from the classpath. If it fails to locate the config on the classpath, it will then attempt to locate it on the file system (e.g. within the project structure).
 
 mixins:: Enables you to add specific testing tools to your test case. Each TestMixIn is a composition-based method that provides customized testing tools for service implementations, gateway bindings, and transformers. When a TestMixIn is annotated on a test class, the SwitchYardRunner handles all the initialization and cleanup (lifecycle) of the TestMixIn instances. It is also possible to manually create and manage TestMixIn instances within your test class if you are not using the SwitchYardRunner.
 
@@ -121,7 +121,7 @@ Adding test support to your SwitchYard application is simply a matter of adding 
 ----
 Note: camel dependency version is 2.10.0.redhat-60024
 
-In addition to a dependency on the core test framework, you might want to take advantage of MixIns in your test classes.  Dependency information for each MixIn is listed under the Test MixIns section
+In addition to a dependency on the core test framework, you might want to take advantage of MixIns in your test classes.
 
 == Metadata and Support Class Injections
 
@@ -529,7 +529,7 @@ Sometimes it is useful to mock a component, so it is never invoked for the shake
 When we want to assert what has arrived/produced the MockHandler, we can get:
 
 * getMessages(): This provides with the list of received messages.
-* getFaults(): This provides with the list of prodced faults.
+* getFaults(): This provides with the list of produced faults.
 
 Sometimes service is InOut, so we need to mock a response. There are four options:
 
@@ -552,7 +552,7 @@ We can also instruct the MockHandler to wait for certain message.
 It will wait for 5 seconds (default) unless instructed to wait for a different period with *setWaitTimeout(milis)*
 
 === Mock a service for more than 1 method invocation
-There are soma cases where the service we are mocking is being called two times in the context of a single unit test, maybe multiple calls to the same method, or to different methods. For this particular case, we can register an *EchangeHandler* with the mock, while registering and replacing the original service, that will get the message, and where we will have to put some logic to deal with this scenario.
+There are some cases where the service we are mocking is being called two times in the context of a single unit test, maybe multiple calls to the same method, or to different methods. For this particular case, we can register an *EchangeHandler* with the mock, while registering and replacing the original service, that will get the message, and where we will have to put some logic to deal with this scenario.
 
 
 

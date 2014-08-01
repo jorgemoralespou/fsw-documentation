@@ -7,12 +7,13 @@ FSW Training
 :revnumber: 0.1
 :icons: font
 :imagesdir: ./images
-:deckjs_theme: web-2.0
-:deckjs_transition: horizontal-slide
+:deckjs_theme: beamer
+// web-2.0
+//:deckjs_transition: horizontal-slide
 //:pygments:
 //:pygments_style: native
 :scrollable:
-//:linkcss:
+// :linkcss: ./css/redhat.css
 //:count_nested:
 
 == Contents
@@ -195,6 +196,35 @@ image::reference-binding.jpg[Reference binding]
 </sca:composite>
 ----
 
+== Switchyard - Create an application
+
+image::service_creation/1.png[To create this service]
+
+== Switchyard - Create a composite
+
+image::service_creation/2.png[Create a composite]
+
+== Switchyard - Add a component
+
+image::service_creation/3.png[Add a component]
+
+== Switchyard - Add more components and link them
+
+image::service_creation/4.png[Add more components and link them]
+
+== Switchyard - Even more components
+
+image::service_creation/5.png[Even more components]
+
+== Switchyard - Expose/call your service
+
+image::service_creation/6.png[Expose/call your service]
+
+== Switchyard - Invoke/Call external applications (references)
+
+image::service_creation/1.png[Call external applications]
+
+
 == Switchyard - Components
  **  Interfaces: wsdl, java, esb
  **  Bean (Java)
@@ -208,12 +238,182 @@ image::reference-binding.jpg[Reference binding]
  TODO: Create this
 
 == Switchyard - Bean Component
+The Bean Component is a pluggable container in SwitchYard which allows Java classes (or beans) to provide and consume services. This means that you can implement a service by simply annotating a Java class. It also means you can consume a service by injecting a reference to that service directly into your Java class
 
  TODO: Create this
+
+== SwitchYard - Creating a Bean service
+To create a new Bean service you only need a few pieces of information:
+
+* *Name*: the name of the Java class for your bean service.
+* *Service Name*: the name of the service your bean will provide.
+* *Interface*: the contract for the service being provided.  Java is the only valid interface type for bean services.
+
+[source,java]
+----
+
+package com.example.switchyard.docs;
+ 
+import org.switchyard.component.bean.Service;
+ 
+@Service(Example.class)
+public class ExampleBean implements Example {
+ 
+}
+----
+
+The @Service annotation allows the SwitchYard CDI Extension to discover your bean at runtime and register it as a service. The value of the annotatio represents the service contract for the service. 
+
+ Every bean service must have an @Service annotation with a value identifying the service interface for the service.
+ 
+== SwitchYard - Consuming a Bean service
+In addition to providing a service in SwitchYard, beans can also consume other services. These services can be provided in the same application by other implementations, or they could be wired to gateway bindings to invoke services over JMS, SOAP, FTP, etc. The SwitchYard runtime handles the resolution of the service reference to a concrete service, allowing your service logic to remain blissfully ignorant. Invocations made through this reference are routed through the SwitchYard exchange mechanism.
+
+[source,java]
+----
+@Inject @Reference
+private SimpleService service;
+
+public void consumeSomeService(String consumerName) {
+   service.sayHello("Hello " + consumerName);
+}
+----
+
+   By default, SwitchYard expects a service reference to be declared with a name which matches the Java type used for the reference. In the event where the service reference name is different from the type name of the contract, the @Reference annotation can accept a service name
+
+[source,java]
+----
+@Inject @Reference("urn:com.example.services:SimpleService:1.0")
+private SimpleService service;
+
+public void consumeSomeService(String consumerName) {
+   service.sayHello("Hello " + consumerName);
+}
+----
+
+== SwitchYard - Reference Invoker
+The default behavior of @Reference is to inject a reference using the Java interface of the reference contract. This is adequate for most cases, but it does not allow you to access SwitchYard API constructs like the Message and Context interfaces.  If you need to access to an attachment or a context property when invoking a reference from a Bean service, then you will want to use a ReferenceInvoker.  To use a ReferenceInvoker, all you need to do is replace the service contract interface type with a ReferenceInvoker type and SwitchYard will automatically inject the correct instance.
+
+[source,java]
+----
+@Inject @Reference("urn:com.example.services:SimpleService:1.0")
+private ReferenceInvoker service;
+
+public void consumeSomeService(String consumerName) {
+   service.newInvocation("sayHello")
+      .setProperty("myHeader", "myValue")
+      .invoke(consumerName);
+}
+----
+
+ Note how the ReferenceInvoker instance is used to create a ReferenceInvocation using the newInvocation() method.  A new instance of ReferenceInvocation should be created each time you want to invoke a service using ReferenceInvoker.
 
 == Switchyard - Camel Component
+Camel services allow you to leverage the core routing engine inside of Apache Camel to route between services in SwitchYard.  All of the EIP and core routing support in Camel is available to your service implementation.  Each Camel route is exposed as a service within SwitchYard, which means it has a well-defined contract and can be injected into any other service in the runtime.
+
+There are 2 implementations:
+
+* Java DSL
+* XML DSL
+
+Tips:
+
+* There is only one route per service. (More routes can be created, only one component entry point)
+* The consumer or "from" endpoint in a route is always a "switchyard" endpoint and the endpoint name must equal the service name.  This is default behavior in the tooling.
+* To consume other services from within your route, only use "switchyard" consumer (i.e. "to") endpoints. This keeps your routing logic independent of the binding details for consumed services.
+
+== Switchyard - Creating a Camel Service
 
  TODO: Create this
+
+
+== Switchyard - Camel Component Java DSL
+
+[source,java]
+----
+package com.example.switchyard.docs;
+ 
+import org.apache.camel.builder.RouteBuilder;
+ 
+public class CamelServiceRoute extends RouteBuilder {
+    /**
+     * The Camel route is configured via this method.  The from:
+     * endpoint is required to be a SwitchYard service.
+     */
+    public void configure() {
+        // TODO Auto-generated method stub
+        from("switchyard://Example").log(
+                "Received message for 'Example' : ${body}");
+    }
+}
+----
+
+ There are no SwitchYard-specific classes or APIs used for Java DSL route; the route class is identical in signature to what you would use with Apache Camel directly.
+
+== Switchyard - Camel Component XMl DSL
+
+[source,xml]
+----
+<?xml version="1.0" encoding="ASCII"?>
+<route xmlns="http://camel.apache.org/schema/spring">
+   <from uri="switchyard://Example"/>
+   <log message="Example - message received: ${body}"/>
+</route>
+----
+
+ The XML routing syntax is identical to what you would use with Apache Camel directly and conforms to the Camel schema for <route> definition
+
+== Switchyard - Consuming services from Camel routes
+Invoking another service from within your Camel route can be done by using the SwitchYard producer endpoint (switchyard://) within your route.  Endpoint configuration is very straightforward:
+
+[source,java]
+----
+switchyard://[service-name]?operationName=[operation-name]
+----
+
+* *service-name*: name of the SwitchYard service. This value needs to match the name of a service reference defined on the service component for the route.
+* *operation-name*: name of the service operation to be invoked. This is only used on references and is optional if the target service only has a single operation.
+
+== SwitchYard - Scripting languages in Camel
+Because of 3rd party dependencies, SwitchYard supports only following languages:
+
+* BeanShell
+* JavaScript
+* Groovy
+* Ruby
+* Python
+
+ Inside your script you will have access to predefined variables like request, response or exchange which will let you generate response.
+
+== Switchyard - Camel CDI Integration
+SwitchYard integrates the CDI Bean Manager with the Camel Bean Registry to allow you to reference CDI Beans in your Camel routes. Any Java class annotated with @Named in your application will be available through Camel's Bean registry.
+
+[source,java]
+----
+@Named("StringSupport")
+@ApplicationScoped
+public class StringUtil {
+ 
+    public String trim(String string) {
+        return string.trim();
+    }
+}
+----
+
+[source,java]
+----
+public class ExampleBuilder extends RouteBuilder {
+ 
+    public void configure() {
+        from("switchyard://ExampleBuilder")
+            .split(body(String.class).tokenize("\n"))
+            .filter(body(String.class).startsWith("sally:"))
+            .to("bean:StringSupport");
+    }
+}
+----
+
+See http://camel.apache.org/bean-binding.html[Camel's Bean Binding] documentation for more details.
 
 == Switchyard - BPEL Component
 
@@ -253,6 +453,47 @@ image::reference-binding.jpg[Reference binding]
 
  TODO: Create this
 
+=== SOAP Headers type
+
+Header sent:
+
+[source,xml]
+----
+<typ:amount xmlns:typ="http://ws.camelcookbook.org/payment-service/types">1000</typ:amount>
+----
+
+CONFIG:
+
+[source,xml]
+----
+<typ:amount xmlns:typ="http://ws.camelcookbook.org/payment-service/types">1000</typ:amount>
+----
+
+DOM:
+It is a DOM object. If you log it from Camel, it will print (cause it has data conversion) but internally it is not well converted.
+
+[source,xml]
+----
+<typ:amount xmlns:typ="http://ws.camelcookbook.org/payment-service/types">1000</typ:amount>
+----
+
+Value:
+
+[source,bash]
+----
+1000
+----
+
+XML: 
+
+[source,xml]
+----
+<typ:amount xmlns:typ="http://ws.camelcookbook.org/payment-service/types">1000</typ:amount>
+----
+   
+ TODO: What is the difference between CONFIG, DOM AND XML???
+
+
 == Switchyard - RESTEasy Binding
 
  TODO: Create this
@@ -272,6 +513,11 @@ image::reference-binding.jpg[Reference binding]
 == Switchyard - JMS Binding
 
  TODO: Create this
+
+- Where does #ConnectionFactory come from???
+- use custom jndiPropertiesFile
+- Use a .ra
+- Configuration for tests with hornetq-jms.xml, hornetq-ra.xml, ...
 
 == Switchyard - SQL Binding
 
@@ -310,8 +556,45 @@ image::reference-binding.jpg[Reference binding]
  TODO: Create this
 
 == Switchyard - Message Composers
+A MessageComposer can compose or decompose a native binding message to/from SwitchYard's canonical message.  A MessageComposer does this in three steps:
+
+1. Construct a new target message instance.
+2. Copy the content ("body") of the message.
+3. Delegate the header/property mapping to a ContextMapper.
+
+ We currently provide a SOAPMessageComposer, a CamelMessageComposer, and a HornetQMessageComposer.  These default implementations are used by their associated bindings, but can be overridden by the user.
+
+ TODO: Check if more message composers exist (RESTeasyMessageCOmposer)
+
+== Switchyard - Custom Message Composers
 
  TODO: Create this
+
+== Switchyard - Context Mappers
+A ContextMapper moves native binding message headers and/or properties to/from SwitchYard's canonical context.  
+
+   Many ContextMapper implementations are provided OOTB).  These default implementations are used by their associated bindings, but can be overridden by the user.
+
+* *SOAPContextMapper*: when processing an incoming SOAPMessage, takes the mime (in most cases, HTTP) headers from a soap envelope and maps them into the SwitchYard Context as Scope.MESSAGE properties with the SOAPComposition.SOAP_MESSAGE_MIME_HEADER label, and takes the soap header elements from the soap envelope and maps them into the SwitchYard Context as Scope.EXCHANGE properties with the SOAPComposition.SOAP_MESSAGE_HEADER label. When processing an outgoing SOAPMessage, it takes the SwitchYard Scope.OUT Context properties and maps them into mime (in most cases, HTTP) headers, and takes the SwitchYard Scope.EXCHANGE Context properties and maps them into the soap envelope as soap header elements.
+
+* *CamelContextMapper*
+* *HornetQContextMapper*
+* *HTTPContextMapper*
+* *RESTEasyContextMapper*
+* *CCIIndexedRecordContextMapper*, *CCIMappedRecordContextMapper*, *JMSContextMapper* (JCA binding)
+
+ TODO: Create this
+
+== SwitchYard - Scopes
+
+* Headers are scoped as MESSAGE. You will see some headers specifically useful for http requests, and other headers specifically useful for http responses.  In both cases, they are most likely tied to the binding's notion of an incoming message or an outgoing message.
+
+* Properties are scoped as EXCHANGE, as this is most likely application or domain data, and possibly useful in the entire processing of the Exchange.
+
+== Switchyard - Custom Context Mappers
+
+ TODO: Create this
+
 
 == Switchyard - Operation selection
 
@@ -745,6 +1028,58 @@ This is based on the property support in the SCA assembly spec. Since the proper
 
  TODO: Create this
 
+== SwitchYard - Implementation Properties - Bean
+Implementation properties represent environmental properties that you have defined in the SwitchYard application descriptor (switchyard.xml) for your bean implementation.  To access these properties, simply add an @Property annotation to your bean class identifying the property you want to inject. The following example demonstrates injection of a "user.name" property:
+
+[source,java]
+----
+@Service(SimpleService.class)
+public class SimpleServiceBean implements SimpleService {
+ 
+   @Property(name="user.name")
+   private String name;
+ 
+   public String sayHello(String message) {
+      return "Hello " + name + ", I got a message: " + message;
+   }
+}
+----
+
+== SwitchYard - Implementation Properties - Camel
+SwitchYard integrates with the Properties Component in Camel to make system and application properties available inside your route definitions. You can inject properties into your camel route using "{{propertyName}}" expression where "propertyName" is the name of the property.
+
+[source,xml]
+----
+<route xmlns="http://camel.apache.org/schema/spring" id="CamelTestRoute">
+   <log message="ItemId [${body}]"/>
+   <to uri="switchyard://WarehouseService?operationName=hasItem"/>
+   <log message="Title Name [${body}]"/>
+   <log message="Properties [{{user.name}}]"/>
+</route>
+----
+
+== SwitchYard - Invocation Properties
+It is information relative to the invocation or current execution. It is carried along the SwitchYard Context.
+
+== SwitchYard - Invocation Properties - Bean Components
+There can be situations where you need to access contextual information like message headers (e.g. received file name) in your implementation. To facilitate this, the Bean component allows you to access the SwitchYard Exchange Context instance associated with a given Bean Service Operation invocation. To get a reference to the Context, simply add a Context property to your bean and annotate it with the CDI @Inject annotation.
+
+[source,java]
+----
+@Service(SimpleService.class)
+public class SimpleServiceBean implements SimpleService {
+ 
+@Inject
+private Context context;
+ 
+public String sayHello(String message) {
+        System.out.println("*** Funky Context Property Value: " + context.getPropertyValue("funkyContextProperty"));
+        return "Hi there!!";
+    }
+}
+----
+
+ The Context interface allows your bean logic to get and set properties in the context.  Note that you can only make calls on the Context instance within the scope of one of the Service Operation methods. Invoking it outside this scope will result in an UnsupportedOperationException being thrown.
 
 == SwitchYard - Policies (transaction, )
 Policy allows you to control the runtime behavior of a service in a declarative manner, independent of the service implementation and binding details. 
@@ -831,7 +1166,7 @@ Consuming services in a cluster follows the same configuration approach, but app
 == SwitchYard - Using Clustering
 To create a cluster of SwitchYard instances, start two or more AS 7 instances with a shared Infinispan cache.  Out-of-the-box configuration in standalone-ha.xml should be sufficient:
 
-[source]
+[source,bash]
 ----
 # start instance 1
 node1> bin/standalone.sh -c standalone-ha.xml -Djboss.node.name=node1
@@ -869,16 +1204,80 @@ Once the instances are up, you can deploy applications independently to each ins
  TODO: Create this
 
 == SwitchYard - Testing SwitchYard application
- * Creating your own camel endpoint/component (Extensions)
+Switchyard testing capabilities rely on JUnit4.
+
+* SwitchYardRunner
+* SwitchYardTestKit
+* SwitchYardTestCaseConfig
 
  TODO: Create this
 
+== SwitchYard - Testing - SwitchYardRunner
+
+ TODO: Create this
+
+== SwitchYard - Testing - SwitchYardTestKit
+
+ TODO: Create this
+
+== SwitchYard - Testing - SwitchYardTestCaseConfig
+
+* config
+* mixins
+* scanner
+
+ TODO: Create this
+
+== SwitchYard - Testing - MixIns
+
+* CDIMixIn
+* HTTPMixIn
+* SmooksMixIn
+* HornetQMixIn
+* JCAMixIn
+* NamingMixIn
+* PropertyMixIn
+ 
+ TODO: Create this
+
+== SwitchYard - Testing - Scanners
+
+* *BeanSwitchYardScanner*: Scans for CDI Bean Service implementations.
+* *TransformSwitchYardScanner*: Scans for Transformers.
+* *BpmSwitchYardScanner*: Scans for @Process, @StartProcess, @SignalEvent and @AbortProcessInstance annotations.
+* *RouteScanner*: Scans for Camel Routes.
+* *RulesSwitchYardScanner*: Scans for @Rule annotations.
+  
+ TODO: Create this
+
+== SwitchYard - Testing - Metadata and support injection
+  
+* TestKit Injection
+* Deployment Injection
+* SwitchYardModel Injection
+* ServiceDomain Injection
+* TransformerRegistry Injection
+* TestMixIn Injection
+* PropertyMixIn Injection
+* Invoker Injection
+ TODO: Create this
+
 == SwitchYard - Advanced topics
+ * Creating your own camel endpoint/component (Extensions)
  * Distributed transactions in FSW - what is possible and what is not possible (e.g. can a splitter/aggregator ever be transactional)
 
  TODO: Create this
 
 == RTGov
+
+For call trace
+* ActivityReporter: reports activity to the BAM server. Can be injected with @Inject in a Bean Component. (How can be injected in Camel or any other???) Has methods logError, logWarn, logInfo,...
+
+For policies:
+* AbstractExchangeValidator extends ExchangeInterceptor: This class observes exchanges and uses the information to create activity events to be validated
+* ExchangeInterceptors allow code to be injected around specific interactions in the core exchange bus via a target definition. Valid targets are documented as constant fields in this interface
+
+InformationProcessor that is based on a set of expressions used to extract relevant data from the supplied information.
 
  TODO: Create this
 
