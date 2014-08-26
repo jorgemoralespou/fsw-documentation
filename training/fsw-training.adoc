@@ -7,6 +7,7 @@ FSW Training
 :revnumber: 0.1
 :icons: font
 :imagesdir: ./images
+:figure-caption!:
 :deckjs_theme: beamer
 // web-2.0
 //:deckjs_transition: horizontal-slide
@@ -16,40 +17,123 @@ FSW Training
 // :linkcss: ./css/redhat.css
 //:count_nested:
 
-== Contents
+== FSW from the Red Hat website
+
+[quote, Red Hat website, http://www.redhat.com/es/technologies/jboss-middleware/fuse-service-works]
+____
+Red Hat® JBoss® Fuse Service Works is a platform that creates reusable, changeable, and flexible business services that hide the complexity of connecting to different applications in your enterprise. It sets the stage for faster and easier cloud apps, mobile apps, and business process development projects.
+
+JBoss Fuse Service Works combines technical innovations from leading open source projects with the experience and support you expect from a world-class software provider.
+
+image::fsw/FSW_benefits.png[FSW benefits]
+____
+
+== FSW from the JBoss.org
+
+[quote, JBoss.org, http://www.jboss.org/products/fsw/overview/]
+____
+An open source service design, development and integration platform that speeds up cloud integration.
+
+JBoss Fuse Service Works is Red Hat’s middleware solution for application integration, messaging, SOA, and service governance requirements. It combines the core ESB technology from JBoss Fuse and technical innovations from popular open source communities like SwitchYard and Overlord.
+____
+
+== From the official documentation
+
+[quote, Red Hat product documentation, https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse_Service_Works/6/html/User_Guide/chap-Preface.html]
+____
+Red Hat JBoss Fuse Service Works is a platform for developing enterprise application integration (EAI) and service-oriented architecture (SOA) solutions. It consists of a service component framework, business rules/complex event processing, life-cycle governance, runtime governance and process automation. It is built on the same core as JBoss Fuse with enterprise messaging, Camel and CXF so, therefore, users can use it to design, deploy, integrate and orchestrate business services.
+____
+
+
+== FSW Core Capabilities
+The benefits of using Red Hat JBoss Fuse Service Works include the following:
+
+Enterprise Integration Pattern (EIP) Based Development:: The versatile EIP framework is implemented in routing and transformation processes for faster and more efficient integration solutions.
+High Performance Messaging:: A high performance messaging broker supports messaging patterns such as publish-subscribe, point-to-point and store-forward, and multiple cross language clients.
+Service Development:: The web services framework exposes integration assets as services and calls external services, supporting all major web services standards. It also supports RESTful calls.
+Structured Service Development:: A lightweight service development framework provides full lifecycle support for developing, deploying, and managing service-based applications.
+Automatable Registry with Workflow:: Manage the lifecycle of services from design, development and deployment by defining, exposing and enforcing rules or policies.
+Business Transaction Monitoring:: Capture service activity information, define and collect metrics, and define alerts and SLAs.
+Report a bug:: (Just kidding)
+
+=== FSW as System Integration
+Integrating your major business systems into a cohesive infrastructure can be a challenge, especially when you have legacy applications. Red Hat JBoss Fuse Service Works has a number of ways enable you to integrate both new and legacy applications. Development is simplified with a transparent, lightweight service framework which uses EIP technology. This allows developers to focus on higher order concepts while still working with familiar technologies such as Apache Camel, BPEL, BPMN or POJOs. To reduce the operational costs of production and maintenance, the platform utilizes automatable, content-aware repository and service activity monitoring. These support the entire service lifecycle and development, QA and production teams with run-time and design-time visibility, monitoring and alerting.
+
+== What is integration
+
+[quote, Wikipedia, http://en.wikipedia.org/wiki/Systems_integration]
+____
+System integration is defined as the process of bringing together the component subsystems into one system and ensuring that the subsystems function together as a system.
+
+The system integrator brings together discrete systems utilizing a variety of techniques such as computer networking, enterprise application integration, business process management or manual programming.
+____
+
+== What is applications integration
+
+[quote, MuleSoft, https://www.mulesoft.com/resources/esb/applications-integration]
+____
+Applications integration (or enterprise application integration) is the sharing of processes and data among different applications in an enterprise. For both small and large organizations alike, it has become a mission-critical priority to connect disparate applications and leverage application collaboration across the enterprise in order to improve overall business efficiency, enhance scalability, and reduce IT costs.
+____
+
+== What is governance
+
+[quote, Wikipedia, http://en.wikipedia.org/wiki/Governance]
+____
+Governance refers to "all processes of governing, whether undertaken by a government, market or network, whether over a family, tribe, formal or informal organization or territory and whether through laws, norms, power or language." It relates to processes and decisions that seek to define actions, grant power and verify performance.
+____
+
+== Training contents
 
 * SwitchYard
 * RTGov
 * DTGov
 
+== FSW Overview - Components
+
+image:fsw/fsw_component_overview.png[FSW component overview]
+
+== FSW Overview - Layers
+
+image:fsw/fsw_layers.png[FSW layers]
+
+== FSW Overview - Architecture 
+
+image:fsw/fsw_architecture.png[FSW architecture]
+
 == SwitchYard
 
-[width="100%", cols=",asciidoc"]
-|=======
-| image:switchyard.png[] | * SCA (Service, component, reference, binding)
- * Components (Service implementations)
- * Bindings (Gateways)
- * Transformations (Java, JAXB, JSON, Smooks, XSLT, ...)
- * Validations (Java validations, XML Validation)
- * Properties
- * Policies (transaction, )
- * Security
- * Clustering
- * RemoteInvoker
- * Serialization
- * Extensions 
-|=======
+image::switchyard/switchyard.png[] 
+
+* SCA (Service, component, reference, binding)
+* Components (Service implementations)
+* Bindings (Gateways)
+* Transformations (Java, JAXB, JSON, Smooks, XSLT, ...)
+* Validations (Java validations, XML Validation)
+* Properties
+* Policies (transaction, )
+* Security
+* Clustering
+* RemoteInvoker
+* Serialization
+* Extensions 
 
 == SwitchYard - SCA
 
- SwitchYard is a component-based development framework focused on building structured, maintainable services and applications using the concepts and best practices of SOA. It works with Apache Camel to provide a fast, simple, flexible integration runtime with comprehensive connectivity and transports. A uniform application model augments Apache Camel, joining Java EE, BPM, rules, orchestration, and routing into a cohesive development model and runtime. Common functionality and cross-cutting concerns - validation, transformation and policy - are isolated from business logic and handled declaratively. This ensures consistency and eliminates duplication, offering developers a clear view of the structure and relationships of services in an integration application.
+____
+SwitchYard is a component-based *development framework* focused on building *structured*, *maintainable services* and *applications* using the concepts and best practices of SOA. It works with Apache Camel to provide a *fast*, *simple*, *flexible* integration runtime with *comprehensive* connectivity and transports. A *uniform* application model *augments* Apache Camel, *joining* Java EE, BPM, rules, orchestration, and routing into a *cohesive* development model and runtime. 
 
-image::app.jpg[SwitchYard application]
+Common functionality and cross-cutting concerns - validation, transformation and policy - are isolated from business logic and handled declaratively. This ensures *consistency* and *eliminates duplication*, offering developers a clear view of the structure and relationships of services in an integration application.
+____
+
+== SwitchYard - SCA
+
+image::switchyard/sca/app.jpg[SwitchYard application]
 
 == Composite
 A composite is displayed as a light blue rectangle and represents the boundary between what's inside your application and what's outside your application. A SwitchYard application consists of exactly one composite that has a name and a targetNamespace. The targetNamespace value is important as it allows names defined locally in the application (e.g. service names) to be qualified and unique within a SwitchYard runtime.
 
-image::composite.jpg[composite]
+== Composite
+image::switchyard/sca/composite.jpg[composite]
 
 [source,xml]
 ----
@@ -66,7 +150,8 @@ A component is a modular container for application logic and consists of the fol
 
 Services and references allow a component to interact with other components, while the implementation provides the actual logic for providing and/or consuming services.
 
-image::component.jpg[component]
+== Component
+image::switchyard/sca/component.jpg[component]
 
 [source,xml]
 ----
@@ -85,7 +170,8 @@ An implementation acts as the 'brain' of a service component and it is how imple
 
 Implementations are private to a component, which means external consumers and providers are not aware of the details of a component's implementation (implementation-hiding).  All interactions with other components within an application and with external services are handled through component services and references.
 
-image::implementations.jpg[implementation]
+== Implementation
+image::switchyard/sca/implementations.jpg[implementation]
 
 [source,xml]
 ----
@@ -99,7 +185,8 @@ image::implementations.jpg[implementation]
 == Component Service
 A component service is used to expose the functionality of an implementation as a service. All component services have a contract, which can be a Java interface, WSDL portType definition, or a set of named data types (interface.esb). Component services are private to an application, which means a component service can only be invoked by other components in the same application. In order to expose a component service to consumers external to the application, a component service can be 'promoted' to a composite service. A component service can be promoted multiple times to create different composite services.
 
-image::component-service.jpg[Component service]
+== Component Service
+image::switchyard/sca/component-service.jpg[Component service]
 
 [source,xml]
 ----
@@ -116,7 +203,8 @@ image::component-service.jpg[Component service]
 == Composite Service
 A composite service represents an application service which is visible to other applications. A composite service can only be realized by promoting a component service within the application. The name and the interface of the composite service can be different from the component service. If the interface, or contract, of the composite service is different from the component service, be aware that a transformation may be required to map between the types defined in each interface. In our example application, the component service has a Java interface while the composite service has a WSDL interface. This means we would need to declare a transformer which maps between XML and Java to resolve the data type mismatch.
 
-image::composite-service.jpg[Composite service]
+== Composite Service
+image::switchyard/sca/composite-service.jpg[Composite service]
 
 [source,xml]
 ----
@@ -130,7 +218,8 @@ image::composite-service.jpg[Composite service]
 == Service Binding
 A service binding is used to define an access method for a composite service. Composite services can have multiple bindings, which allows a single service to be accessed in different ways. In most cases, a service binding represents a protocol/transport adapter (e.g. SOAP, JMS, REST). An important exception to this rule is the SCA binding, which allows services across applications in the same runtime to be wired together in memory. Regardless of the underlying binding details, a binding must always be used to facilitate inter-application communication in SwitchYard.
 
-image::service-binding.jpg[Service binding]
+== Service Binding
+image::switchyard/sca/service-binding.jpg[Service binding]
 
 [source,xml]
 ----
@@ -147,7 +236,8 @@ image::service-binding.jpg[Service binding]
 == Component Reference
 A component reference allows a component to consume other services. A component reference can be wired to a service offered by another component in the same application or it can be wired to services outside the application via a composite reference. Similar to component services, all component references have a contract with allows a component to invoke services without knowing implementation or binding details. The picture below shows an example of wiring a reference on the Routing component to a service offered by the Bean component.
 
-image::component-reference.jpg[Component reference]
+== Component Reference
+image::switchyard/sca/component-reference.jpg[Component reference]
 
 [source,xml]
 ----
@@ -167,7 +257,8 @@ image::component-reference.jpg[Component reference]
 == Composite Reference
 A composite reference allows a component reference to be wired to a service outside the application. Similar to composite services, bindings are used with composite references to specify the communication method for invoking the external service.
 
-image::composite-reference.jpg[Composite reference]
+== Composite Reference
+image::switchyard/sca/composite-reference.jpg[Composite reference]
 
 [source,xml]
 ----
@@ -181,7 +272,8 @@ image::composite-reference.jpg[Composite reference]
 == Reference Bindings
 A reference binding is used to define an access method for an external service via a composite reference. Unlike service bindings, there can only be one binding for each composite reference. The set of bindings available for references is identical to the set of bindings available for services, although the configuration values for a given binding may be different depending on whether it's used as a service binding or a reference binding.
 
-image::reference-binding.jpg[Reference binding]
+== Reference Bindings
+image::switchyard/sca/reference-binding.jpg[Reference binding]
 
 [source,xml]
 ----
@@ -196,46 +288,82 @@ image::reference-binding.jpg[Reference binding]
 </sca:composite>
 ----
 
-== Switchyard - Create an application
+== Create an application
 
-image::service_creation/1.png[To create this service]
+image::switchyard/service_creation/1.png[To create this service]
 
-== Switchyard - Create a composite
+== Create a composite
 
-image::service_creation/2.png[Create a composite]
+image::switchyard/service_creation/2.png[Create a composite]
 
-== Switchyard - Add a component
+== Add a component
 
-image::service_creation/3.png[Add a component]
+image::switchyard/service_creation/3.png[Add a component]
 
-== Switchyard - Add more components and link them
+== Add more components and link them
 
-image::service_creation/4.png[Add more components and link them]
+image::switchyard/service_creation/4.png[Add more components and link them]
 
-== Switchyard - Even more components
+== Even more components
 
-image::service_creation/5.png[Even more components]
+image::switchyard/service_creation/5.png[Even more components]
 
-== Switchyard - Expose/call your service
+== Expose/call your service
 
-image::service_creation/6.png[Expose/call your service]
+image::switchyard/service_creation/6.png[Expose/call your service]
 
-== Switchyard - Invoke/Call external applications (references)
+== Invoke/Call external applications (references)
 
-image::service_creation/1.png[Call external applications]
+image::switchyard/service_creation/1.png[Call external applications]
 
+== Configure every declarative aspect
 
-== Switchyard - Components
- **  Interfaces: wsdl, java, esb
+* Properties
+* Policies
+* Transformations
+* Validation
+* ...
+
+== Components - What we have
+ **  Component contract interfaces: wsdl, java, esb
  **  Bean (Java)
  **  Camel (java, xml)
  **  BPEL (XPath functions)
  **  BPM
  **  Rules (Knowledge services)
 
-== Switchyard - Interfaces
+== Contracts
 
- TODO: Create this
+Every service needs to have it's contract defined (API).
+
+This contracts can be defined in on of 3 ways:
+
+* Java 
+* WSDL
+* SOA
+
+NOTE: SwitcyYard require a one parameter per method in the contract definition
+
+== Java contract
+
+.Definition
+image::switchyard/contracts/java_contract.png[Java contract]
+
+.Implementation
+image::switchyard/contracts/java_contract_impl.png[Java contract Implementation]
+
+== WSDL contract
+
+.Definition
+image::switchyard/contracts/wsdl_contract.png[WSDL contract]
+
+.Implementation
+image::switchyard/contracts/wsdl_contract_impl.png[WSDL contract Implementation]
+
+== ESB contract
+
+.Definition and implementation
+image::switchyard/contracts/esb_contract.png[ESB contract]
 
 == Switchyard - Bean Component
 The Bean Component is a pluggable container in SwitchYard which allows Java classes (or beans) to provide and consume services. This means that you can implement a service by simply annotating a Java class. It also means you can consume a service by injecting a reference to that service directly into your Java class
@@ -515,6 +643,7 @@ XML:
  TODO: Create this
 
 - Where does #ConnectionFactory come from???
+https://community.jboss.org/thread/243227
 - use custom jndiPropertiesFile
 - Use a .ra
 - Configuration for tests with hornetq-jms.xml, hornetq-ra.xml, ...
@@ -685,15 +814,15 @@ Aside from short-circuiting the requirement for transformation, this annotation 
 
 Required transformations are automatically detected by IDE, but, if missing, can be created/deleted/recreated manually:
 
-image::transformers/no_missing_transformer.png[All required validators have been added]
+image::switchyard/transformers/no_missing_transformer.png[All required validators have been added]
 
 If you remove all/any of the transformers, you will be able to create missing required transformers:
 
-image::transformers/required_transformers.png[Create required transformer]
+image::switchyard/transformers/required_transformers.png[Create required transformer]
 
 A new dialog will let you create a new transformer:
 
-image::transformers/new_transformer_all.png[New Transformer]
+image::switchyard/transformers/new_transformer_all.png[New Transformer]
 
 == SwitchYard - Transformations - Java
 Java transformer let you do any kind of transformation using Java for this purpose. There are two methods available for creating a Java-based transformer in SwitchYard:
@@ -705,21 +834,21 @@ Java transformer let you do any kind of transformation using Java for this purpo
 
 Implementing Java transformations is just a matter of creating a new (Java) Transformer on the SwitchYard application:
 
-image::transformers/new_transformer.png[New validator]
+image::switchyard/transformers/new_transformer.png[New validator]
 
 And selecting Java as the type of transformer you want implementing class or bean.
 
-image::transformers/new_java_transformer.png[Create a Java transformer]
+image::switchyard/transformers/new_java_transformer.png[Create a Java transformer]
 
 It will create the appropiate transformer class/bean with the default annotated methods:
 
-image::transformers/java_transformer.png[Java Transformer class]
+image::switchyard/transformers/java_transformer.png[Java Transformer class]
 
  The optional from and to elements of the @Transformer annotation can be used to specify the qualified type name used during transformer registration.  If not supplied, the full class name of the method parameter will be used as the from type and the full class name of the return type will be used as the to type.
 
 And the corresponding configuration in the switchyard.xml file:
 
-image::transformers/transformer_switchyard_xml.png[Transformers defined in switchyard.xml file]
+image::switchyard/transformers/transformer_switchyard_xml.png[Transformers defined in switchyard.xml file]
 
  The CDI bean name specified by @Named annotation is used to resolve transformer class. If you don't specify, then class name of the transformer is used instead.
 
@@ -741,7 +870,7 @@ public JAXBElement<CreateOrder> createOrder(CreateOrder value) {
 
 And the corresponding configuration in the switchyard.xml file:
 
-image::transformers/jaxb_transformer_switchyard_xml.png[JAXB transformers defined in switchyard.xml file]
+image::switchyard/transformers/jaxb_transformer_switchyard_xml.png[JAXB transformers defined in switchyard.xml file]
 
 
 == SwitchYard - Transformations - JSON
@@ -952,19 +1081,19 @@ Validation of message content is specified in the descriptor of your SwitchYard 
 
 Implementing Java validation is just a matter of creating a new (Java) Validator on the SwitchYard application:
 
-image::validators/new_validator.png[New validator]
+image::switchyard/validators/new_validator.png[New validator]
 
 And selecting type you want to validate and implementing class or bean.
 
-image::validators/java_validator.png[Create a Java validator]
+image::switchyard/validators/java_validator.png[Create a Java validator]
 
 It will create the appropiate configuration in the switchyard.xml file:
 
-image::validators/validator_switchyard_xml.png[Validator defined in switchyard.xml file]
+image::switchyard/validators/validator_switchyard_xml.png[Validator defined in switchyard.xml file]
 
 And the appropiate class/bean needs to be created (manually), with the correspongin annotations (*@Named* and *@Validator*):
 
-image::validators/annotated_validator.png[Annotated validator]
+image::switchyard/validators/annotated_validator.png[Annotated validator]
 
 Validation methods should return an instance of *import org.switchyard.validate.ValidationResult*.
 
@@ -1130,7 +1259,7 @@ There are two fundamental building blocks to the clustering support in SwitchYar
 * *Shared Runtime Registry*: a shared, distributed runtime registry which allows individual instances to publish and query service endpoint details.
 * *Remote Communication Channels*: an internal communication protocol used to allow a service client to invoke a service hosted in a remote instance.
 
-image::clustering.jpg[Clustering]
+image::switchyard/clustering.jpg[Clustering]
 
 The runtime registry is backed by a replicated Infinispan cache.  Each instance in a cluster points to the same replicated cache.  When a node joins a cluster, it immediately has access to all remote service endpoints published in the registry.  If a node leaves the cluster due to failure or shutdown, all service endpoint registrations are immediately removed for that node.  The registry is not persisted, so manually clean-up and maintenance is not required.  Note that the shared registry is a runtime registry and not a publication registry, which means the registry's lifecycle and state is tied to the current state of deployed services within a cluster.  This is in contrast to a publication registry (e.g. UDDI), where published endpoints are independent from the runtime state of the ESB.
 
