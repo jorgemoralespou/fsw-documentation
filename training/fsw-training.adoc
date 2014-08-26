@@ -288,6 +288,10 @@ image::switchyard/sca/reference-binding.jpg[Reference binding]
 </sca:composite>
 ----
 
+== SCA terms summary
+
+image::switchyard/sca/sca_summary.png[SCA Summary]
+
 == Create an application
 
 image::switchyard/service_creation/1.png[To create this service]
@@ -459,7 +463,7 @@ public void consumeSomeService(String consumerName) {
 
  Note how the ReferenceInvoker instance is used to create a ReferenceInvocation using the newInvocation() method. A new instance of ReferenceInvocation should be created each time you want to invoke a service using ReferenceInvoker.
 
-== Switchyard - Camel Component
+== Camel Component
 Camel services allow you to leverage the core routing engine inside of Apache Camel to route between services in SwitchYard. All of the EIP and core routing support in Camel is available to your service implementation. Each Camel route is exposed as a service within SwitchYard, which means it has a well-defined contract and can be injected into any other service in the runtime.
 
 There are 2 implementations:
@@ -467,18 +471,19 @@ There are 2 implementations:
 * Java DSL
 * XML DSL
 
-Tips:
+== Camel Component Tips
 
 * There is only one route per service. (More routes can be created, only one component entry point)
 * The consumer or "from" endpoint in a route is always a "switchyard" endpoint and the endpoint name must equal the service name.  This is default behavior in the tooling.
 * To consume other services from within your route, only use "switchyard" consumer (i.e. "to") endpoints. This keeps your routing logic independent of the binding details for consumed services.
 
-== Switchyard - Creating a Camel Service
+ These are tips and behaviour can be modify to NOT comply with above tips 
 
- TODO: Create this
+== Creating a Camel Service in Java DSL
 
+image::switchyard/components/camel/new_camel_java_service.png[New Camel Java Service]
 
-== Switchyard - Camel Component Java DSL
+== Creating a Camel Service in Java DSL
 
 [source,java]
 ----
@@ -501,7 +506,11 @@ public class CamelServiceRoute extends RouteBuilder {
 
  There are no SwitchYard-specific classes or APIs used for Java DSL route; the route class is identical in signature to what you would use with Apache Camel directly.
 
-== Switchyard - Camel Component XMl DSL
+== Creating a Camel Service in XML DSL
+
+image::switchyard/components/camel/new_camel_xml_service.png[New Camel XML Service]
+
+== Creating a Camel Service in XML DSL
 
 [source,xml]
 ----
@@ -514,18 +523,24 @@ public class CamelServiceRoute extends RouteBuilder {
 
  The XML routing syntax is identical to what you would use with Apache Camel directly and conforms to the Camel schema for <route> definition
 
-== Switchyard - Consuming services from Camel routes
+== Drawbacks in Camel Service in XML DSL
+
+NOTE: As of FSW 6.0 there is no access to Camel Context from within the route xml definition file, so it is not suitable for defining namespaces,... or anything that get's registered into the Camel Context.
+
+== Consuming services from Camel routes
 Invoking another service from within your Camel route can be done by using the SwitchYard producer endpoint (switchyard://) within your route.  Endpoint configuration is very straightforward:
 
 [source,java]
 ----
-switchyard://[service-name]?operationName=[operation-name]
+switchyard://<service-name>[?operationName=<operation-name>]
 ----
 
 * *service-name*: name of the SwitchYard service. This value needs to match the name of a service reference defined on the service component for the route.
 * *operation-name*: name of the service operation to be invoked. This is only used on references and is optional if the target service only has a single operation.
 
-== SwitchYard - Scripting languages in Camel
+image::switchyard/composite_overview.png[Composite overview]
+
+== Scripting languages in Camel
 Because of 3rd party dependencies, SwitchYard supports only following languages:
 
 * BeanShell
@@ -536,7 +551,34 @@ Because of 3rd party dependencies, SwitchYard supports only following languages:
 
  Inside your script you will have access to predefined variables like request, response or exchange which will let you generate response.
 
-== Switchyard - Camel CDI Integration
+[source,java]
+----
+public class ScriptingBuilder extends RouteBuilder {
+ 
+    public void configure() {
+        from("switchyard://Inbound")
+            .filter().javaScript("request.getHeader('myHeader') != null")
+                .to("switchyard://Outbound");
+    }
+}
+----
+
+[source,java]
+----
+public class ScriptingImplementationBuilder extends RouteBuilder {
+ 
+    public void configure() {
+        from("switchyard://Inbound")
+            .transform().groovy("classpath:script.groovy"); // classpath resource
+ 
+        from("switchyard://InboundBsh")
+            .transform().language("beanshell", "file:script.bsh"); // file system resource
+    }
+}
+----
+
+== Camel CDI Integration
+
 SwitchYard integrates the CDI Bean Manager with the Camel Bean Registry to allow you to reference CDI Beans in your Camel routes. Any Java class annotated with @Named in your application will be available through Camel's Bean registry.
 
 [source,java]
@@ -566,13 +608,262 @@ public class ExampleBuilder extends RouteBuilder {
 
 See http://camel.apache.org/bean-binding.html[Camel's Bean Binding] documentation for more details.
 
-== Switchyard - BPEL Component
+== Create a BPEL Component service
+Once you have your WSDL interface for the BPEL service, add the component to the SwitchYard configuration (create or define the implementation and service interface).
 
- TODO: Create this
+image::switchyard/components/bpel/new_bpel_service_1.png[New BPEL service]
 
-== Switchyard - BPM Component
+image::switchyard/components/bpel/new_bpel_service_2.png[New BPEL service]
 
- TODO: Create this
+Whis will create the appropiate partnerLinks definitions.
+
+image::switchyard/components/bpel/new_bpel_service_3.png[New BPEL service]
+
+== Create a BPEL Component service
+The created BPEL component contains a single 'implementation.bpel' element that identifies the fully qualified name of the BPEL process.
+
+[source, java]
+----
+<sca:component name="Process">
+   <sca:implementation.bpel process="process:Process"/>
+   <sca:service name="Payment">
+      <sca:interface.wsdl interface="META-INF/paymentService.wsdl#wsdl.porttype(Payment)"/>
+   </sca:service>
+</sca:component>
+----
+
+The component may also contain one or more service elements defining the WSDL port types through which the BPEL process can be accessed.
+
+== Create a BPEL Component service
+Define your process using WS-BPEL (e.g. using the Eclipse BPEL editor bundled with JBossTools).
+
+image::switchyard/components/bpel/new_bpel_service_4.png[New BPEL service]
+
+== Create a BPEL Component service
+Define a Deployment Descriptor (/deploy.xml) using the ODE Deployment Descriptor editor bundled with JBossTools.
+
+image::switchyard/components/bpel/new_bpel_service_5.png[New BPEL service]
+
+== BPEL Component consuming a service
+
+image::switchyard/components/bpel/invoke_service_from_bpel_1.png[Invoke BPEL service]
+
+The first step is to define the WSDL interface(s), representing the service(s) to be consumed, using an invoke element within the deployment descriptor
+
+[source,java]
+----
+<process name="ls:loanApprovalProcess">
+        <active>true</active>
+        <process-events generate="all"/>
+        <provide partnerLink="customer">
+            <service name="ls:loanService" port="loanService_Port"/>
+        </provide>
+        <invoke partnerLink="assessor" usePeer2Peer="false">
+            <service name="ra:riskAssessor" port="riskAssessor_Port"/>
+        </invoke>
+    </process>
+----
+
+NOTE: The 'usePeer2Peer' property informs the BPEL engine not to use internal communications for sending messages between BPEL processes that may be executing within the same engine, and instead pass messages through the SwitchYard infrastructure.
+
+For each consumed service, we then need to create a reference element within the SwitchYard configuration, to locate the WSDL file and identify the port type associated with the required WSDL service/port.
+
+[source,java]
+----
+<sca:component name="loanService">
+   <bpel:implementation.bpel process="ls:loanApprovalProcess" />
+   <sca:service name="loanService">
+      <sca:interface.wsdl interface="loanServicePT.wsdl#wsdl.porttype(loanServicePT)"/>
+   </sca:service>
+   <sca:reference name="riskAssessor" >
+      <sca:interface.wsdl interface="riskAssessmentPT.wsdl#wsdl.porttype(riskAssessmentPT)"/>
+   </sca:reference>
+</sca:component>
+----
+
+== Structure of a BPEL application
+
+image::switchyard/components/bpel/switchyard-BPEL-structure.png[BPEL application]
+
+NOTE: The important part is how the artifacts are structured within the src/main/resources folder.
+
+* The switchyard.xml configuration file is located in the META-INF folder as usual. However the BPEL deployment descriptor (deploy.xml), and the BPEL process definition are located in the root folder.
+* The WSDL interface definitions, and any accompanying XSD schemas, can be located in sub-folders. If they are, then the BPEL process and SwitchYard BPEL component configuration must define the correct relative path.
+
+== BPEL Component TIPS
+
+* Avoid usage of BPEL components if possible
+
+== BPM Component
+To create a new BPM service in SwitchYard, you'll need the following information:
+
+* File Name: the file name that will be used to create a new, empty BPMN 2 Process definition.
+* Interface Type: the contract for the service being provided.  BPM supports Java, WSDL, and ESB contract types.
+* Service Name: the name of the service your process will provide.
+
+image::switchyard/components/bpm/new_bpm_service_1.png["New BPM component"]
+
+image::switchyard/components/bpm/new_bpm_service_2.png["New BPM component"]
+
+== Process interaction
+Interaction with a process is defined via actions on a BPM service component.
+
+[source,java]
+----
+package org.switchyard.userguide;
+public interface MyService {
+    public void start(String data);
+    public void signal(String data);
+    public void abort(String data);
+}
+----
+
+Actions allow you to map an operation in the service contract to one of the following interactions with a business process:
+
+----
+START_PROCESS
+SIGNAL_EVENT
+SIGNAL_EVENT_ALL
+ABORT_PROCESS_INSTANCE
+----
+
+image::switchyard/components/bpm/bpm_actions.jpg["BPM actions"]
+
+== Starting a Process Instance
+Operations configured with the *START_PROCESS* action type will start new process instances.
+
+When you start your process (actually, any interaction with a service whose implementation is bpm), the processInstanceId will be put into the Switchyard Context at *Scope.MESSAGE*, and will be fed back to your client in a binding-specific way.  For soap, it will be in the form of a soap header in the soap response envelope:
+
+[source,xml]
+----
+<soap:Header>
+    <bpm:processInstanceId xmlns:bpm="urn:switchyard-component-bpm:bpm:1.0">1</bpm:processInstanceId>
+</soap:Header>
+----
+In future process interactions, you will need to send back that same processInstanceId, so that the correlation is done properly.  For soap, that means including the same soap header that was returned in the response to be sent back with subsequent requests.
+
+NOTE: If you are using persistence, the sessionId will also be available in the Context, and will need to be fed back as well.  It would look the same way in the soap header as the processInstanceId does.
+
+== Correlation Keys
+If you do not want to track the processInstanceId, however need to have multiple interactions with the same process instance, you can start the process with your own application-specific correlation key, and include that same correlation key for future interactions.  Here is an example of including in a a soap request:
+
+[source,xml]
+----
+<soap:Header>
+    <bpm:correlationKey xmlns:bpm="urn:switchyard-component-bpm:bpm:1.0">MY-APP-KEY-0123456789</bpm:correlationKey>
+</soap:Header>
+----
+
+== Signaling a Process Instance
+Operations configured with the *SIGNAL_EVENT* operation type will have the associated process instance signaled. 
+
+NOTE: The processInstanceId will need to have been available in the Context so the correct process instance is correlated.
+
+There are two other pieces of information when signaling an event:
+
+* The *"event id"*.  In BPMN2 lexicon, this is known as the "signal id", but in jBPM can also be known as the "event type".  This is set as the eventId in the configuration.
+
+NOTE: In BPMN2, a signal looks like this: <signal id="foo" value="bar"/>  In jBPM, it is the signal id that is respected, not the name.  This might require you to tweak a tooling-generated id to whatever you want it called.
+
+* The *"event object"*.  This is the data representing the event itself, coming from the Message content object itself (your payload).
+
+Operations configured with the *SIGNAL_EVENT_ALL* operation type will have all process instances signaled.
+
+== Aborting a Process Instance
+Operations configured with the *ABORT_PROCESS_INSTANCE* operation type will cause associated process instances to be aborted.
+
+NOTE: The processInstanceId will need to have been available in the Context so the correct process instance is correlated.
+
+== BPM Operations mappings
+SwitchYard provides a flexible way to map data in and out service operation invocations via MVEL expressions.
+
+image::switchyard/components/bpm/bpm_operations.png["Operations mappings"]
+
+The above will create XML configuration like this:
+
+[source,xml]
+----
+<operation name="process" type="START_PROCESS">
+  <inputs>
+    <input from="message.content.policy" to="Policy"/>
+    <input from="message.content.driver" to="Driver"/>
+  </inputs>
+  <outputs>
+    <output from="Policy" to="message.content"/>
+  </outputs>
+  <faults>
+    <fault from="ProcessingFault" to="message.content"/>
+  </faults>
+</operation>
+----
+
+=== Globals
+If your process executes business rules, you can use global mappings to access data in your rules which do not trigger rule execution themselves.
+
+=== Inputs
+For the BPM component, inputs are used to set process instance variables that can later be referenced by nodes within your process.
+
+IMPORTANT: or you to be able to use variables inside your process, you have to declare your variable names at the process level, as well as in the Parameter Mapping (and possibly Result Mapping) of any process node that wants access to those variables. This can be done easily in the BPMN2 Eclipse tooling by using the Properties view when clicking on either the whitespace around the process, or on any of your process nodes.
+
+=== Outputs
+Outputs are used to extract process instance variables so that they can be set in the outgoing SwitchYard Message content.
+
+=== Faults
+Fault mapping is similar to Output mapping, however the data represents an Exception or data that will be wrapped in an Exception.
+
+== Calling a BPM process
+We are going to do a walk through of creating a BPM process and calling it from SwitchYard. Our process will call 3 other SwitchYard service as part of it orchestration logic.
+
+image::switchyard/components/bpm/bpm_process_definition.png["Process Definition"]
+
+Our process consist of one method, that receives an *Order* and answers with an *OrderAck*.
+
+[source,java]
+----
+import org.switchyard.quickstarts.bpm.service.data.Order;
+import org.switchyard.quickstarts.bpm.service.data.OrderAck;
+
+public interface ProcessOrder {
+    OrderAck submitOrder(Order order);
+}
+----
+
+To invoke the BPM process, we select the properties for the BPM component in the Switchyard editor, and map the operations to BPM process events. For this particular example, we will map the *submitOrder* operation to trigger the start of the process with *START_PROCESS*, and we map the operation input and output data types to the process data types.
+
+image::switchyard/components/bpm/process_properties_2.png["Process operation mapping"]
+
+As can be seen, the operation input value is mapped with *message.content* to a process variable called *input_param*. For the operation return type, we get the process result, which will come in a process variable that we have called *output_result*. (By default, BPM will use an output variable called *Result*).
+
+Our process definition is quite simple, it will invoke a SwitchYard service, and will evaluate the result of this invocation to decide which other service to call amongst two. The result of the invocation of this last service call will be used as a result of the whole process, this means, as a result of the operation being invoked.
+
+image:switchyard/components/bpm/process.png["Process definition"]
+
+To be able to interact with SwitchYard, we map the input and output parameters to "Process variables", as well as we declare some other variables to be used along the process execution.
+
+image:switchyard/components/bpm/variables.png["Process Variables definition"]
+
+When you want to invoke from a BPM process a *SwitchYard Service*, that means a SwitchYard "Reference", you just drop the *SwitchYardServiceTask* to the canvas and set the required properties. By default there will be the required properties for the invocation:
+
+image:switchyard/components/bpm/switchyard_task_defaults.png["SwitchYard Service Task defaults"]
+
+We then need to fill:
+
+* *ServiceName*
+* *OperationName*
+
+And then map the SwitchYard Task invocation parameters, to the process variables. (Shown in red in the picture below)
+
+image:switchyard/components/bpm/switchyard_task_params.png["SwitchYard Service Task params"]
+
+In this example, we have copied the result of the call to the Inventory service into a process variable called *InventoryAvailable* that we use in the following gateway to select where to divert.
+
+image:switchyard/components/bpm/divert.png["Exclusive gateway"]
+
+Once the gateway selects the route to take, it is time to call last "SwitchYard Service", and again, setting up required fields and mappings to process variables. This time, the result of the execution of the SwitchYard Service will be mapped to the BPM process output.
+
+image:switchyard/components/bpm/process_output.png["Process output mapping"]
+
+NOTE: The name of the process defines the scope for the process variables. (ProcessOrder in this example)
 
 == Switchyard - Rules Component
 
