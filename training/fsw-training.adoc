@@ -365,21 +365,25 @@ image::switchyard/contracts/wsdl_contract_impl.png[WSDL contract Implementation]
 .Definition and implementation
 image::switchyard/contracts/esb_contract.png[ESB contract]
 
-== Switchyard - Bean Component
+== Bean Component
 The Bean Component is a pluggable container in SwitchYard which allows Java classes (or beans) to provide and consume services. This means that you can implement a service by simply annotating a Java class. It also means you can consume a service by injecting a reference to that service directly into your Java class
 
- TODO: Create this
+image::switchyard/components/bean/bean_component.png[Bean component]
 
-== SwitchYard - Creating a Bean service
+== Creating a Bean service
 To create a new Bean service you only need a few pieces of information:
 
 * *Name*: the name of the Java class for your bean service.
 * *Service Name*: the name of the service your bean will provide.
 * *Interface*: the contract for the service being provided.  Java is the only valid interface type for bean services.
 
+== Creating a Bean service
+image::switchyard/components/bean/new-bean.jpg[New bean component]
+
+== Creating a Bean service
+
 [source,java]
 ----
-
 package com.example.switchyard.docs;
  
 import org.switchyard.component.bean.Service;
@@ -394,7 +398,7 @@ The @Service annotation allows the SwitchYard CDI Extension to discover your bea
 
  Every bean service must have an @Service annotation with a value identifying the service interface for the service.
  
-== SwitchYard - Consuming a Bean service
+== Consuming a Bean service
 In addition to providing a service in SwitchYard, beans can also consume other services. These services can be provided in the same application by other implementations, or they could be wired to gateway bindings to invoke services over JMS, SOAP, FTP, etc. The SwitchYard runtime handles the resolution of the service reference to a concrete service, allowing your service logic to remain blissfully ignorant. Invocations made through this reference are routed through the SwitchYard exchange mechanism.
 
 [source,java]
@@ -407,7 +411,8 @@ public void consumeSomeService(String consumerName) {
 }
 ----
 
-   By default, SwitchYard expects a service reference to be declared with a name which matches the Java type used for the reference. In the event where the service reference name is different from the type name of the contract, the @Reference annotation can accept a service name
+== Consuming a Bean service
+By default, SwitchYard expects a service reference to be declared with a name which matches the Java type used for the reference. In the event where the service reference name is different from the type name of the contract, the @Reference annotation can accept a service name
 
 [source,java]
 ----
@@ -419,8 +424,26 @@ public void consumeSomeService(String consumerName) {
 }
 ----
 
-== SwitchYard - Reference Invoker
-The default behavior of @Reference is to inject a reference using the Java interface of the reference contract. This is adequate for most cases, but it does not allow you to access SwitchYard API constructs like the Message and Context interfaces.  If you need to access to an attachment or a context property when invoking a reference from a Bean service, then you will want to use a ReferenceInvoker.  To use a ReferenceInvoker, all you need to do is replace the service contract interface type with a ReferenceInvoker type and SwitchYard will automatically inject the correct instance.
+== Consuming a Bean service
+
+image::switchyard/components/bean/consume_service_1.png[]
+
+== Consuming a Bean service
+
+image::switchyard/components/bean/consume_service_2.png[]
+
+== Consuming a Bean service
+
+image::switchyard/components/bean/consume_service_3.png[]
+
+== Consuming a Bean service
+
+image::switchyard/components/bean/consume_service_4.png[]
+
+== Reference Invoker
+The default behavior of @Reference is to inject a reference using the Java interface of the reference contract. This is adequate for most cases, but it does not allow you to access SwitchYard API constructs like the Message and Context interfaces. 
+
+If you need to access to an attachment or a context property when invoking a reference from a Bean service, then you will want to use a *ReferenceInvoker*. To use a ReferenceInvoker, all you need to do is _replace the service contract interface type with a ReferenceInvoker type and SwitchYard will automatically inject the correct instance_.
 
 [source,java]
 ----
@@ -434,10 +457,10 @@ public void consumeSomeService(String consumerName) {
 }
 ----
 
- Note how the ReferenceInvoker instance is used to create a ReferenceInvocation using the newInvocation() method.  A new instance of ReferenceInvocation should be created each time you want to invoke a service using ReferenceInvoker.
+ Note how the ReferenceInvoker instance is used to create a ReferenceInvocation using the newInvocation() method. A new instance of ReferenceInvocation should be created each time you want to invoke a service using ReferenceInvoker.
 
 == Switchyard - Camel Component
-Camel services allow you to leverage the core routing engine inside of Apache Camel to route between services in SwitchYard.  All of the EIP and core routing support in Camel is available to your service implementation.  Each Camel route is exposed as a service within SwitchYard, which means it has a well-defined contract and can be injected into any other service in the runtime.
+Camel services allow you to leverage the core routing engine inside of Apache Camel to route between services in SwitchYard. All of the EIP and core routing support in Camel is available to your service implementation. Each Camel route is exposed as a service within SwitchYard, which means it has a well-defined contract and can be injected into any other service in the runtime.
 
 There are 2 implementations:
 
