@@ -1563,35 +1563,74 @@ https://community.jboss.org/thread/243227
 
  TODO: Create this
 
-== Switchyard - Message Composers
+==  Composers
 A MessageComposer can compose or decompose a native binding message to/from SwitchYard's canonical message.  A MessageComposer does this in three steps:
 
 1. Construct a new target message instance.
 2. Copy the content ("body") of the message.
 3. Delegate the header/property mapping to a ContextMapper.
 
- We currently provide a SOAPMessageComposer, a CamelMessageComposer, and a HornetQMessageComposer.  These default implementations are used by their associated bindings, but can be overridden by the user.
+ We currently provide a SOAPMessageComposer, a HttpMessageComposer, and a RESTEasyMessageComposer, CamelMessageComposer.  These default implementations are used by their associated bindings, but can be overridden by the user.
 
- TODO: Check if more message composers exist (RESTeasyMessageCOmposer)
+[source,java]
+----
+public interface MessageComposer<D extends BindingData> {
+    public ContextMapper<D> getContextMapper();
+    public MessageComposer<D> setContextMapper(ContextMapper<D> contextMapper);
 
-== Switchyard - Custom Message Composers
+    public Message compose(D source, Exchange exchange) throws Exception;
+    public D decompose(Exchange exchange, D target) throws Exception;
+}
+----
 
- TODO: Create this
+== SOAPMessageComposer
 
-== Switchyard - Context Mappers
+TODO: Document
+
+== HttpMessageComposer
+
+TODO: Document
+
+== RESTEasyMessageComposer
+
+TODO: Document
+
+== CamelMessageComposer
+
+TODO: Document
+
+
+== Context Mappers
 A ContextMapper moves native binding message headers and/or properties to/from SwitchYard's canonical context.  
 
-   Many ContextMapper implementations are provided OOTB).  These default implementations are used by their associated bindings, but can be overridden by the user.
+ Many ContextMapper implementations are provided OOTB. These default implementations are used by their associated bindings, but can be overridden by the user.
+[source,java]
+----
+public interface ContextMapper<D extends BindingData> {
+    public ContextMapperModel getModel();
+    public void setModel(ContextMapperModel model);
 
-* *SOAPContextMapper*: when processing an incoming SOAPMessage, takes the mime (in most cases, HTTP) headers from a soap envelope and maps them into the SwitchYard Context as Scope.MESSAGE properties with the SOAPComposition.SOAP_MESSAGE_MIME_HEADER label, and takes the soap header elements from the soap envelope and maps them into the SwitchYard Context as Scope.EXCHANGE properties with the SOAPComposition.SOAP_MESSAGE_HEADER label. When processing an outgoing SOAPMessage, it takes the SwitchYard Scope.OUT Context properties and maps them into mime (in most cases, HTTP) headers, and takes the SwitchYard Scope.EXCHANGE Context properties and maps them into the soap envelope as soap header elements.
+    public void mapFrom(D source, Context context) throws Exception;
+    public void mapTo(Context context, D target) throws Exception;
+}
+----
 
-* *CamelContextMapper*
-* *HornetQContextMapper*
-* *HTTPContextMapper*
-* *RESTEasyContextMapper*
-* *CCIIndexedRecordContextMapper*, *CCIMappedRecordContextMapper*, *JMSContextMapper* (JCA binding)
+== SOAPContextMapper
+When processing an incoming SOAPMessage, takes the mime (in most cases, HTTP) headers from a soap envelope and maps them into the SwitchYard Context as Scope.MESSAGE properties with the SOAPComposition.SOAP_MESSAGE_MIME_HEADER label, and takes the soap header elements from the soap envelope and maps them into the SwitchYard Context as Scope.EXCHANGE properties with the SOAPComposition.SOAP_MESSAGE_HEADER label. When processing an outgoing SOAPMessage, it takes the SwitchYard Scope.OUT Context properties and maps them into mime (in most cases, HTTP) headers, and takes the SwitchYard Scope.EXCHANGE Context properties and maps them into the soap envelope as soap header elements.
 
- TODO: Create this
+== HTTPContextMapper
+
+TODO: Document
+
+== RESTEasyContextMapper
+
+TODO: Document
+
+== CamelContextMapper
+
+TODO: Document
+
+== Message Composition Explained with an example
 
 Here we will find a description of what is happening at the message composition time in a call to a SwitchYard application through an HTTP binding and having one call to an external reference through an HTTP binding.
 
@@ -1665,9 +1704,7 @@ NOTE: This property could be the one that was set from the invocation to the ext
 ** If the property is *HttpContextMapper.HTTP_RESPONSE_STATUS* it will set the status on the HttpResponseBindingData
 
 
-== HOWTOS
-
-=== How to pass a header from an incoming request to use it in the SwitchYard application
+== How to pass a header from an incoming request to use it in the SwitchYard application
 You need to add the header in the Message Composer design time configuration screen for the Composite Service Http Binding.
 
 image::switchyard/core/pass_header.png[Authorization header]
@@ -1676,7 +1713,7 @@ NOTE: Remember that headers are *lowercased*.
 
 If you want to progress this header to a Composite Reference, you need to add it again to the Composite Reference Http Binding's Message Composer design time configuration screen
 
-=== How to send a header to an outgoing request
+== How to send a header to an outgoing request
 You need to add the header in the context of the invocation with EndpointLabel.HTTP. To be able to modify aspects of the call to the reference, this need to be done as a ReferenceInvoker rather than as a regular Reference.
 
 [source,java]
@@ -1705,7 +1742,7 @@ You need to add the header in the context of the invocation with EndpointLabel.H
    }
 ----
 
-=== How to change configuration for calling service (method, queryString, queryArgs). How to invoke dynamically
+== How to change configuration for calling service (method, queryString, queryArgs). How to invoke dynamically
 
 WARNING: This is not possible with HTTP Binding reference. You have to use Camel binding reference.
 
@@ -1744,7 +1781,7 @@ To be able to modify aspects of the call to the reference, this need to be done 
    }
 ----
 
-=== How to check the status code of an invocation to an external service
+== How to check the status code of an invocation to an external service
 You need to check for the following context Property *HttpContextMapper.HTTP_RESPONSE_STATUS*
 
 ----
@@ -1770,7 +1807,7 @@ You need to check for the following context Property *HttpContextMapper.HTTP_RES
    }
 ----
 
-=== How to set the status code of an invocation to a SwitchYard application
+== How to set the status code of an invocation to a SwitchYard application
 You need to set the following context Property *HttpContextMapper.HTTP_RESPONSE_STATUS* with label *EndpointLabel.HTTP*. In order to do this in a component, you need to create a new Message and send it to the Exchange.
 
 In a BeanComponent:
@@ -1801,36 +1838,9 @@ In a Processor:
     exchange.getIn().setHeader(HttpContextMapper.HTTP_RESPONSE_STATUS, statusCode);
 ----
 
-=== How to copy all HTTP incoming headers and progress them
+== How to copy all HTTP incoming headers and progress them
 Right now there is no way to copy all headers from Http service binding to an Http Reference Binding but to specify all the headers you want to copy in the regex includes field for both MessageComposers.
 Another option is to create your own MessageComposer, that extends the basic HttpMessageComposer and copy all the headers in the context in the Service Binding, and then set them back in the Reference Binding.
-
-== MessageComposer
-
-[source,java]
-----
-public interface MessageComposer<D extends BindingData> {
-    public ContextMapper<D> getContextMapper();
-    public MessageComposer<D> setContextMapper(ContextMapper<D> contextMapper);
-
-    public Message compose(D source, Exchange exchange) throws Exception;
-    public D decompose(Exchange exchange, D target) throws Exception;
-}
-----
-
-== ContextMapper
-
-[source,java]
-----
-public interface ContextMapper<D extends BindingData> {
-    public ContextMapperModel getModel();
-    public void setModel(ContextMapperModel model);
-
-    public void mapFrom(D source, Context context) throws Exception;
-    public void mapTo(Context context, D target) throws Exception;
-}
-----
-
 
 == SwitchYard - Scopes
 
