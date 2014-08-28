@@ -694,6 +694,13 @@ NOTE: The important part is how the artifacts are structured within the src/main
 
 * Avoid usage of BPEL components if possible
 
+== Knowledge Services
+
+* BPM component
+* Rules component
+
+Both BPM and Rules share the same execution engine, and share some common configurations
+
 == BPM Component
 To create a new BPM service in SwitchYard, you'll need the following information:
 
@@ -797,19 +804,32 @@ The above will create XML configuration like this:
 </operation>
 ----
 
-=== Globals
-If your process executes business rules, you can use global mappings to access data in your rules which do not trigger rule execution themselves.
+NOTE: All of the different mapping types support a from and to attribute. Those attributes get configured with MVEL expressions, which themselves support variables that can come from process or global variable names, implicit variable names, or variables that get resolved from properties.
 
-=== Inputs
+== Globals
+If your process executes business rules, you can use global mappings to access data in your rules which do not trigger rule execution themselves, but can be used in either the LHS or RHS of your rules for customization. 
+
+== Inputs
 For the BPM component, inputs are used to set process instance variables that can later be referenced by nodes within your process.
 
-IMPORTANT: or you to be able to use variables inside your process, you have to declare your variable names at the process level, as well as in the Parameter Mapping (and possibly Result Mapping) of any process node that wants access to those variables. This can be done easily in the BPMN2 Eclipse tooling by using the Properties view when clicking on either the whitespace around the process, or on any of your process nodes.
+NOTE: For you to be able to use variables inside your process, you have to declare your variable names at the process level, as well as in the Parameter Mapping (and possibly Result Mapping) of any process node that wants access to those variables. This can be done easily in the BPMN2 Eclipse tooling by using the Properties view when clicking on either the whitespace around the process, or on any of your process nodes.
 
-=== Outputs
+== Outputs
 Outputs are used to extract process instance variables so that they can be set in the outgoing SwitchYard Message content.
 
-=== Faults
+== Faults
 Fault mapping is similar to Output mapping, however the data represents an Exception or data that will be wrapped in an Exception.
+
+== Implicit variables
+
+* *context*: The current org.switchyard.Context.
+* *message*: The current org.switchyard.Message.
+
+Examples:
+----
+from="message.content" - This is the same as message.getContent().
+from="context[‘foo’]" - This is the same as context.getProperty("foo", Scope.MESSAGE).getValue(), in a null-safe manner.
+----
 
 == Calling a BPM process
 We are going to do a walk through of creating a BPM process and calling it from SwitchYard. Our process will call 3 other SwitchYard service as part of it orchestration logic.
@@ -865,11 +885,428 @@ image:switchyard/components/bpm/process_output.png["Process output mapping"]
 
 NOTE: The name of the process defines the scope for the process variables. (ProcessOrder in this example)
 
-== Switchyard - Rules Component
+== Rules Component
+To create a new Rules service in SwitchYard, you'll need the following information
 
- TODO: Create this
+* *File Name*: the file name that will be used to create a new template rules definition.
+* *Interface Type*: the contract for the service being provided.  Rules services support Java, WSDL, and ESB contract types.
+* *Service Name*: the name of the service your process will provide.
+* *Package Name*: package name used for the new Rules file.
 
-== Switchyard - Binding/Gateways
+image::switchyard/components/rules/new_rules.jpg[New Rules component]
+
+== Rules Component
+
+The ExampleService interface can be as simple as this (with no SwitchYard-specific imports):
+
+[source,java]
+----
+package com.example.switchyard.docs;
+public interface Example {
+    public void process(MyData data);
+}
+----
+
+The generated rule template will look like this:
+[source,java]
+----
+package com.example.switchyard.docs
+import org.switchyard.Message
+global Message message
+ 
+rule "RulesExample"
+   when
+      // insert conditional here
+   then
+      // insert consequence here
+      System.out.println("service: ExampleService, payload: " + message.getContent());
+end
+----
+
+== Rules Operations mappings
+SwitchYard provides a flexible way to map data in and out service operation invocations via MVEL expressions.
+
+image::switchyard/components/rules/rules_operations.png["Operations mappings"]
+
+The above will create XML configuration like this:
+
+[source,xml]
+----
+<operation name="process" type="EXECUTE">
+  <globals>
+    <global from="context['org.switchyard.messageId']" to="messageId"/>
+  </globals>
+  <inputs>
+    <input from="message.content.policy"/>
+    <input from="message.content.driver"/>
+    <input from="context['org.example.foobar']"/>
+  </inputs>
+  <outputs>
+    <output from="globals.Result" to="message.content"/>
+  </outputs>
+  <faults>
+    <fault from="globals.Fault" to="message.content"/>
+  </faults>
+</operation>
+----
+
+== Generated rules service
+
+[source,java]
+----
+package org.switchyard.example.docs
+ 
+global java.lang.String messageId
+global java.util.Map globals
+ 
+rule "Approval"
+    when
+        policy : Policy(threshold >= 600)
+    then
+        policy.setFlag(true);
+        globals.put("Result", policy);
+end
+ 
+rule "Denial"
+    when
+        policy : Policy(threshold < 600)
+    then
+        policy.setFlag(false);
+        globals.put("Result", policy);
+end
+----
+
+== Globals
+If your process executes business rules, you can use global mappings to access data in your rules which do not trigger rule execution themselves, but can be used in either the LHS or RHS of your rules for customization. 
+
+They also provide a nice way to define in/out "buckets" so you can get data out of rule execution.
+
+[source,java]
+----
+   globals.put("resultingPolicy", policy);
+----
+
+IMPORTANT: The global variable called globals (java.util.Map) is always available for in/out purposes.  You don't have to configure it in your <globals> section for it to be available to your BPM/DRL.
+
+== Globals - TIP
+If you want to use your own application object as in in/out variable, you are free to do so.
+
+You can even dynamically create your own Map using *MVEL* and name it what you want.
+
+[source,xml]
+----
+<operation name="process" type="EXECUTE">
+  <globals>
+    <!-- the from is an MVEL construct which creates a new Map -->
+    <global from="['':'']" to="holder"/>
+  </globals>
+  <outputs>
+    <!-- this assumes you did a holder.put("out", someObject) at some point -->
+    <output from="holder.out" to="message.content"/>
+  </outputs>
+</operation>
+----
+
+== Inputs
+Inputs are the "facts" that are inserted into the Drools rules engine.
+
+NOTE: If you do not specify your own Inputs, the default will be the incoming Message content. 
+
+IMPORTANT: If you do specify your own Inputs, the incoming Message content will not be inserted as a fact, and you will have to include "message.content" yourself, if desired.
+
+== Outputs
+Using in/out variables (for example, the global Map called "globals"), we can extract data out of the rules execution and into the outgoing Message content.
+
+IMPORTANT: If you do not specify your own Outputs, the default will be the result of the expression "globals.Result".
+
+WARNING: If you do not specify your own Outputs, or in your DRL, you do not populate the "Result" of the globals Map, then your Rules component execution will return null. For IN_OUT Exchange patterns this is a problem.
+
+== Faults
+Fault mapping is similar to Output mapping, however the data represents an Exception or data that will be wrapped in an Exception.
+
+== Stateless vs. Stateful Rules Execution
+
+*Rules services are stateless by default*. Service method invocation will create a new Drools knowledge session, execute it given the passed-in domain data, and then be cleanly disposed.
+
+*To use a stateful session*, use the FIRE_ALL_RULES action type instead of EXECUTE.
+
+*To insert facts into a stateful knowledge session without firing the rules*, use the INSERT operation type.
+
+== Channels
+* Drools supports the notion of "Channels", which are basically "exit points" in your DRL.
+* They can be used in both stateful and stateless sessions.
+
+[source,java]
+----
+package com.example
+rule "example rule"
+    when
+        $f : Foo ( bar > 10 )
+    then
+        channels["Bar"].send( $f.getBar() );
+end
+----
+
+[source,xml]
+----
+<channels>
+    <channel class="com.example.BarChannel" name="Bar"/>
+</channels>
+----
+
+WARNING: Channels must implement org.kie.api.runtime.Channel.
+
+== Consume another SwitchYard Service from a rules service
+SwitchYard provides an out-of-the-box Channel which allows you to invoke (one-way) other SwitchYard services directly and easily from your DRL.
+
+[source,xml]
+----
+<channel name="HelloWorld" reference="HelloWorld" operation="greet"/>
+----
+
+Parameters to the SwitchYard channel
+* *class*: The channel implementation class. (Default is SwitchYardServiceChannel.)
+* *name*: The channel name. (default = simple name of the implementation class)
+* *reference*: The service reference qualified name.
+* *operation* The service reference operation name.
+
+== Complex Event Processing - Configure
+How to configure via XML? (it can be done via JBDS tooling)
+
+[source,xml]
+----
+<implementation.rules ...>
+    <operations>
+        <operation eventId="FooStream" name="processFooMessage" type="FIRE_UNTIL_HALT"/>
+        <operation eventId="BarStream" name="processBarMessage" type="FIRE_UNTIL_HALT"/>
+    </operations>
+    ...
+    <properties>
+        <property name="drools.clockType" value="realtime"/>
+        <property name="drools.eventProcessingMode" value="stream"/>
+        <property name="drools.maxThreads" value="1"/>
+        <property name="drools.multithreadEvaluation" value="false"/>
+    </properties>
+</implementation.rules>
+----
+
+NOTE: The type of "FIRE_UNTIL_HALT" is required for CEP scenarios.
+
+== Complex Event Processing - Insert facts
+*How do facts (data) get inputted for CEP?*
+
+Operations of type FIRE_UNTIL_HALT can specify <inputs> just like any other operation. If all of your inputs have "from" attributes but not "to" attributes, then:
+
+* If the "eventId" attribute on the operation element is set, then the eventId is your entry point that the data gets inserted into. (Unicast)
+* If the "eventId" attribute on the operation element is not set, then everything gets inserted into the stateful session, not into an entry point. ((Multicast)
+
+== KnowledgeServices Listeners
+Listeners are used to monitor specific types of events that occur during Knowledge execution.
+
+[source,xml]
+----
+<listeners>
+    <listener class="org.drools.core.event.DebugProcessEventListener"/>
+    <listener class="org.kie.api.event.rule.DebugWorkingMemoryEventListener"/>
+    <listener class="com.example.MyListener"/>
+</listeners>
+----
+
+== KnowledgeServices Loggers
+Loggers are special types of Listeners, and are used to output the events that occur during Knowledge execution. Events can be logged to the CONSOLE or to a FILE.
+
+[source,xml]
+----
+<loggers>
+    <logger interval="2000" log="myLog" type="THREADED_FILE"/>
+    <logger type="CONSOLE/>
+</loggers>
+----
+
+== KnowledgeServices MANIFEST
+MANIFEST is where you specify where the "intelligence" of the component comes from. 
+
+* For the *BPM* component, this will be, at the minimum, the location of the BPMN 2 process definition file.
+* For the *Rules* component, this will most likely be the location of DRL, DSL, DSLR or XLS files. 
+
+There are two ways to to configure the Manifest:
+
+* With a KIE Container. This relies upon the existence of a META-INF/kmodule.xml configuration file.
+* With a manually defined list of Resources.
+
+WARNING: These two options are mutually exclusive.
+
+.META-INF/kmodule.xml
+[source,xml]
+----
+<kmodule xmlns="http://jboss.org/kie/6.0.0/kmodule">
+    <kbase name="com.example">
+        <ksession name="my-session" type="stateless"/>
+    </kbase>
+</kmodule>
+----
+
+.META-INF/switchyard.xml
+[source,xml]
+----
+....
+<bpm:implementation.bpm persistent="false" processId="ProcessOrder">
+   <bpm:manifest>
+      <!-- // This element is needed when the ksession is defined in the kmodule.xml
+      <bpm:container sessionName="my-session"/> 
+      -->
+      <bpm:resources>
+         <bpm:resource location="ProcessOrder.bpmn" type="BPMN2"/>
+         <bpm:resource location="com/example/MyRules.drl" type="DRL"/>
+      </bpm:resources>
+   </bpm:manifest>
+   ...
+</bpm:implementation>
+...
+----
+
+== KnowledgeServices Configuration Properties
+Properties are the way to provide "hints" to the underlying KIE/Drools/jBPM runtime on how certain options are configured.
+
+WARNING: Properties are an advanced topic, so setting them should be done with care.
+
+NOTE: All possible property names and values will not be listed here. To view them, in your IDE open up a Type Heirarchy with a root of *org.kie.api.conf.Option*.
+
+[source,xml]
+----
+<properties>
+    <property name="drools.clockType" value="pseudo"/>
+    <property name="drools.eventProcessingMode" value="stream"/>
+</properties>
+----
+== Core concepts
+
+SwitchYard uses Camel internally to communicate between its parts (bindings and components) and follows Camel concepts in terms of Messages, Exchange, ...
+
+image::switchyard/core_switchyard.png[SwitchYard Core concepts]
+
+== Core concepts - org.switchyard.Message
+
+A Message represents an individual input or output of a service, the content of which is interpreted by service implementation logic.
+
+A Message does not carry context specific to a service invocation, which means that it can be copied and reused across service invocations. There are two distinct parts to a message:
+
+* *Content*: the main body, or payload, of the message. There is only one body per message instance. The message body is mutable, so message processing logic can access the content, change it (transform, enrich, etc.), and then set it back on the message.
+* *Attachments*: provide the ability to associate content with a message separate from  the main body, allowing it to be parsed independently. One example  would be a binary image that is referenced by the main body of the message.  The attachment may be too large to be processed in certain services or the service implementation may not be able to  parse/interpret it.
+
+== Core concepts - org.switchyard.Exchange
+
+An Exchange provides a conduit for the messages that flow into and out of a service  as part of a service invocation.
+
+An Exchange represents an instance of a service invocation with a specific message exchange pattern (e.g. InOnly, InOut).  
+
+Unlike messages, an exchange cannot be copied and reused across service invocations. State associated with an invocation (i.e. context) is maintained at the exchange level.
+
+* *org.switchyard.ExchangePhase*: Represents the phase of an exchange. (INPUT or OUTPUT)
+
+* *org.switchyard.ExchangeState*: Represents the state of an Exchange (OK, FAULT)
+
+* *org.switchyard.ExchangePattern*: The list of supported exchange patterns within SwitchYard. (IN_ONLY, IN_OUT)
+
+* *org.switchyard.metadata.ExchangeContract*: Two-way Exchange contract, detailing the requirements of both the consumer and provider ServiceOperation being invoked.
+
+== Core concepts - org.switchyard.Context
+
+Holds contextual information around the exchange of messages between a service consumer and provider.
+
+== Core concepts - org.switchyard.Service
+
+A service registered with the SwitchYard runtime.
+
+== Core concepts - org.switchyard.ServiceReference
+
+A service registered with the SwitchYard runtime.
+
+== Core concepts - org.switchyard.ServiceDomain
+
+A ServiceDomain represents a collection of services with a shared set of resources, configuration, and policy definitions.  The ServiceDomain interface is used by software components to provide and/or consume services.  These software components include protocol gateways, service containers, translation engines, adapters, orchestration and routing engines.
+
+== Core concepts - org.switchyard.metadata.ServiceOperation
+epresentation of an operation on a ServiceInterface. Each operation has:
+
+* an exchange pattern (IN_OUT, IN_ONLY)
+* a name
+* an input message referenced type
+* an (optional) output message type
+* an (optional) fault message type
+
+The mapping of operation and message names is defined by the concrete implementation of ServiceInterface.  For example, the expected mapping of a Java interface would be Java method name to ServiceInterface operation name.
+
+== Core concepts - org.switchyard.metadata.ServiceInterface
+The canonical representation of a service interface in SwitchYard.  
+
+Every service in SwitchYard is registered with exactly one ServiceInterface, providing information on the type, operations, and input/output messages for the service. 
+
+The SwitchYard runtime provides concrete implementations of ServiceInterface for Java and WSDL interface types. 
+
+There is also a default type of *ServiceInterface.DEFAULT_TYPE* which is used to represent services which do not publish a formal contract.
+
+== Core concepts - org.switchyard.ServiceMetadata
+Contains runtime details on services and service references registered in SwitchYard.
+
+Instances of ServiceMetadata can be created and updated using the ServiceMetadataBuilder class
+
+== Core concepts - org.switchyard.ExchangeHandler
+The role of a Handler is to handle messages and fault events during the course of a service invocation.
+
+When consuming a service, a handler can be registered during Exchange creation to handle consumer events (e.g. fault or reply message).
+
+When providing a service, a handler is specified while registering the service to process invocations of that service.
+
+== Core concepts- How an Exchange works
+
+TODO: Describe how an Exchange goes from one ServiceHandler/Exchange to another ServiceHandler/ExchangeHandler, how the message is created. How to create and set new messages back in the Exchange, What is the pipeline that drives the Exchange lifecycle,...
+
+== Core concepts - 
+
+== Core concepts - ServiceHandlers
+
+Every SwitchYard application has a composite service with one or multiple bindings. 
+
+Every binding acts as an endpoint. Incoming endpoint if it is a binding on a service or outgoing endpoint if it is a binding on a reference. 
+
+This endpoints are created, registered and started when the aplication gets deployed, and are stoped, unregistered and destroyed when the application is undeployed.
+
+Every endpoint implements *org.switchyard.deploy.ServiceHandler*
+
+There are inbound handlers and outbound handlers, depending if they act as server endpoints or client endpoints.
+
+Inbound handlers:
+
+* org.switchyard.component.camel.common.handler.InboundHandler: An handler that acts as a gateway/entrypoint for Camel Components.
+* org.switchyard.component.http.InboundHandler: Hanldes HTTP requests to invoke a SwitchYard service.
+* org.switchyard.component.resteasy.InboundHandler: Handles RESTEasy requests to invoke a SwitchYard service.
+* org.switchyard.component.soap.InboundHandler: Handles SOAP requests to invoke a SwitchYard service.
+* org.switchyard.component.sca.SCAEndpoint: For publishing services as SCA
+
+Outbound handlers:
+
+* org.switchyard.component.camel.common.handler.OutboundHandler: A handler that is capable of calling Apache Camel components.
+* org.switchyard.component.http.OutboundHandler: Handles invoking external HTTP services.
+* org.switchyard.component.resteasy.OutboundHandler: Handles invoking external RESTEasy services.
+* org.switchyard.component.soap.OutboundHandler: Handles invoking external Webservice endpoints.
+* org.switchyard.component.sca.SCAInvoker: Handles outbound communication to an SCA service endpoint
+
+image::switchyard/service_handlers.jpg[Service Handlers]
+
+== How does an InboundHandler Works
+
+TODO: Define this.
+
+== How does an OutboundHandler Works
+
+TODO: Define this.
+
+TODO: How and when message composition happens
+TODO: How and when validation, transformation, ... happens 
+
+
+== Binding/Gateways
  ** Http based
  ***  SOAP
  ***  RESTEasy
@@ -891,11 +1328,96 @@ NOTE: The name of the process defines the scope for the process variables. (Proc
  ** Operation selection
  ** Throttling
 
-== Switchyard - SOAP Binding
+== SOAP Binding
+The SOAP component in SwitchYard provides SOAP-based web service binding support for services and references. 
 
- TODO: Create this
+In FSW it is based in *JBossWS-CXF*.
 
-=== SOAP Headers type
+== SOAP Service Binding - Details
+Basic configureation
+
+image::switchyard/bindings/soap/binding_service_soap_1.png[Soap Service binding]
+
+* *wsdl*: location of the WSDL used to describe the web service endpoint.
+* *wsdlPort*: port name in the WSDL to use.  If unspecified, the first port definition in the WSDL is used for the service endpoint
+* *socketAddr*: the IP Socket Address to be used. The value can be in the form hostName/ipAddress:portNumber or hostName/ipAddress or :portNumber.
+* *contextPath*: additional context path for the SOAP endpoint. (Default is none)
+
+* *unwrapped Payload*: Checking this option it will unwrap the message's payload (explained later).
+* *SOAP Headers Type*: How it will extract the SOAP headers into SwitchYard (explained later)
+* *Endpoint Configuration*: cxf.xml configuration file for external endpoint configuration (Does not work)
+* *MTOM*: Enable Message Transmission Optimization Mechanism for attachments
+
+== SOAP Service Binding - Interceptors
+Configure CXF interceptors for Inbound and Outbound pipelines
+image::switchyard/bindings/soap/binding_service_soap_2.png[Soap Service binding]
+
+== SOAP Service Binding - Message Composer
+Configure message composition for SOAP messages. (Exlained later)
+image::switchyard/bindings/soap/binding_service_soap_3.png[Soap Service binding]
+
+== SOAP Service Binding Example
+[source,xml]
+----
+<sca:composite name="orders" targetNamespace="urn:switchyard-quickstart-demo:orders:0.1.0">
+   <sca:service name="OrderService" promote="OrderService">
+      <soap:binding.soap name="soap1">
+         <soap:contextMapper includes="custom.*" soapHeadersType="XML"/>
+         <soap:messageComposer unwrapped="true"/>
+         <soap:wsdl>META-INF/orderService.wsdl</soap:wsdl>
+         <soap:wsdlPort>OrderPort</soap:wsdlPort>
+         <soap:socketAddr>:9091</soap:socketAddr>
+         <soap:contextPath>order-test</soap:contextPath>
+         <soap:endpointConfig configFile="SecureEndpointConfig.xml" 
+                              configName="SecureOrder"/>
+         <soap:mtom threshold="1500" xopExpand="true"/>
+         <soap:inInterceptors>
+            <soap:interceptor class="org.apache.cxf.interceptor.LoggingInInterceptor"/>
+         </soap:inInterceptors>
+         <soap:outInterceptors>
+            <soap:interceptor class="org.apache.cxf.interceptor.LoggingOutInterceptor"/>
+         </soap:outInterceptors>
+      </soap:binding.soap>
+   </sca:service>
+</sca:composite>
+----
+
+== SOAP Service Binding - Unwrapped payload
+It will remove the wrapper part of the message, which usually translates to the operation for you.
+
+[source,xml]
+----
+<soap:Body>  
+   <orders:submitOrder xmlns:orders="urn:switchyard-quickstart:bean-service:1.0">  
+      <order>  
+         <orderId>PO-19838-XYZ</orderId>  
+         <itemId>BUTTER</itemId>  
+         <quantity>200</quantity>  
+      </order>  
+   </orders:submitOrder>  
+</soap:Body>  
+----
+
+The message you will be passed will be:
+[source,xml]
+----
+<order xmlns:orders="urn:switchyard-quickstart:bean-service:1.0">  
+   <orderId>PO-19838-XYZ</orderId>  
+   <itemId>BUTTER</itemId>  
+   <quantity>200</quantity>  
+</order>
+----
+
+NOTE: if (unwrapped){ ...// peel off the operation wrapper, if present ...}
+
+IMPORTANT: It will unwrap the request and wrap back the response (if not already wrapped).
+  
+See: 
+
+* org.switchyard.component.soap.composer.SOAPMessageComposer.compose(...)
+* org.switchyard.component.soap.composer.SOAPMessageComposer.decompose(...)
+
+== SOAP Headers type
 
 Header sent:
 
@@ -904,37 +1426,47 @@ Header sent:
 <typ:amount xmlns:typ="http://ws.camelcookbook.org/payment-service/types">1000</typ:amount>
 ----
 
-CONFIG:
+* *CONFIG*: *org.switchyard.config.Configuration* object based on the SOAP header
+* *DOM*: XML representation of the element, in DOM format. 
+* *Value*: Value of the element (1000)
+* *XML*: String representation of the SOAP header XML element.
 
-[source,xml]
-----
-<typ:amount xmlns:typ="http://ws.camelcookbook.org/payment-service/types">1000</typ:amount>
-----
+See: *org.switchyard.component.soap.composer.SOAPContextMapper.mapFrom(...)*
 
-DOM:
-It is a DOM object. If you log it from Camel, it will print (cause it has data conversion) but internally it is not well converted.
+== SOAP Service Binding CAVEATS
 
-[source,xml]
-----
-<typ:amount xmlns:typ="http://ws.camelcookbook.org/payment-service/types">1000</typ:amount>
-----
+* The url where the service is published can only be known at deploy time from the logs.
+* The url is composed in the form of http://<host>:<port>/<artifactName>/<context>/<xxxx>
+* In AS7 by default the JBossWS-CXF stack is enabled and hence the socketAddr parameter will be ignored. This parameter can be used for standalone usage (Unit tests).
 
-Value:
+== SOAP Reference Service Binding
+Binding a reference with SOAP can be used to make SOAP-based web services available to SwitchYard services.
 
-[source,bash]
-----
-1000
-----
+image::switchyard/bindings/soap/binding_reference_soap_1.png[Soap reference binding]
 
-XML: 
+== SOAP Reference Binding
 
-[source,xml]
-----
-<typ:amount xmlns:typ="http://ws.camelcookbook.org/payment-service/types">1000</typ:amount>
-----
-   
- TODO: What is the difference between CONFIG, DOM AND XML???
+image::switchyard/bindings/soap/binding_reference_soap_2.png[Soap reference binding]
 
+== SOAP Reference Binding
+
+image::switchyard/bindings/soap/binding_reference_soap_3.png[Soap reference binding]
+
+== SOAP Reference Binding
+
+image::switchyard/bindings/soap/binding_reference_soap_4.png[Soap reference binding]
+
+== SOAP Binding Capabilities
+
+* *WS-Security*
+** *UsernameToken Support*
+** *Signature and Encryption Support*
+* *Attachments* (y default any attachment sent with a SOAP Envelope is passed around in a SwitchYard Message as an attachment. The default SOAPMessageComposer handles this.)
+** *SOAP with Attachments (SwA)*
+** *SOAP with MTOM/XOP*:
+* *WS-Addressing*
+
+See: https://docs.jboss.org/author/display/SWITCHYARD/SOAP
 
 == Switchyard - RESTEasy Binding
 
@@ -1069,6 +1601,8 @@ The tooling reflects this as well, which is why if there are no interactions whe
 ** XSLT
 ** Transformations in a Camel component
 ** Other (coming next: Dozer,...)
+
+TODO: http://www.mastertheboss.com/jboss-soa/switchyard-tutorial/page-2
 
 == SwitchYard - Transformations - Content Type Names
 
