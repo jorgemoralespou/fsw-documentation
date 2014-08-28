@@ -1583,9 +1583,29 @@ public interface MessageComposer<D extends BindingData> {
 }
 ----
 
-== SOAPMessageComposer
+== SOAPMessageComposer - compose
 
-TODO: Document
+NOTE: compose happens in requests to Services and responses from References 
+
+. creates a SwitchYardMessage
+. call the SOAPContextMapper.mapFrom to copy all the headers into the context
+. if it is a SOAPFault, creates a Message with the contents being the SOAPFaultDetail and returns it (This is for responses from References)
+. otherwise creates a Message with the SOAPEnvelope contents (unwrapped if configured) and adds all the SOAP attachments to the SwitchYard Message attachments
+
+WARNING: This is a rough simplification, as there are many validations and more logic inside
+
+== SOAPMessageComposer - decompose
+
+NOTE: decompose happens in responses from Services and requests to References 
+
+. if the message is already a SOAP Message, just return it
+. otherwise creates a SOAP message from the contents of the SwitchYard message (wrap the message if configured and needed), and return a SOAPFault if message is a fault
+. add the existing attachments in the SwitchYard Message
+. if message is an Exception, throw the Exception and let JAX-WS format the fault
+. call the SOAPContextMapper.mapFrom to copy all the headers into the context
+. returns the binding data (SOAP Message)
+
+WARNING: This is a rough simplification, as there are many validations and more logic inside
 
 == HttpMessageComposer
 
@@ -1615,8 +1635,28 @@ public interface ContextMapper<D extends BindingData> {
 }
 ----
 
-== SOAPContextMapper
-When processing an incoming SOAPMessage, takes the mime (in most cases, HTTP) headers from a soap envelope and maps them into the SwitchYard Context as Scope.MESSAGE properties with the SOAPComposition.SOAP_MESSAGE_MIME_HEADER label, and takes the soap header elements from the soap envelope and maps them into the SwitchYard Context as Scope.EXCHANGE properties with the SOAPComposition.SOAP_MESSAGE_HEADER label. When processing an outgoing SOAPMessage, it takes the SwitchYard Scope.OUT Context properties and maps them into mime (in most cases, HTTP) headers, and takes the SwitchYard Scope.EXCHANGE Context properties and maps them into the soap envelope as soap header elements.
+== SOAPContextMapper - mapFrom
+
+NOTE: mapFrom happens in requests to Services and responses from References 
+
+. if message has a fault, set it as a property in the context with key "soap_fault_info" and label "SOAP_HEADER_LABELS"
+. if there is HTTP status code, set it as property with key "http_response_status" and label "SOAP_MIME_LABELS"
+. get all the mime headers and set them as properties with the header name as key and label "SOAP_MIME_LABELS"
+. get all the soap headers and set them as properties with the header *QName* as key and label "SOAP_HEADERS_LABELS", transformed according to the binding configuration (config, value, dom, xml)
+
+WARNING: This is a rough simplification, as there are many validations and more logic inside
+
+== SOAPContextMapper - mapTo
+
+NOTE: mapTo happens in requests to Services and responses from References 
+
+. iterate over all the context properties
+. if it qualiefies as a SOAP header (that means the property name is a *QName*) and matches the filtered headers configured in the binding (for the whole QNAME) add convert to SOAP header and add to returned message
+. otherwise, if it matches the configured header filter or it is a property with an label of *EnpointLabel.HTTP* it will be added as mime_header with the property as header name, and the property value as header value
+. (special case) if the property name is *SOAPContextMapper.HTTP_RESPONSE_STATUS* the the value (integer) will be set as status for the SOAP message.
+
+WARNING: This is a rough simplification, as there are many validations and more logic inside
+
 
 == HTTPContextMapper
 
@@ -1636,7 +1676,7 @@ Here we will find a description of what is happening at the message composition 
 
 image::switchyard/core/MessageComposition_Flow.jpg[Message composition flow]
 
-==== (1) Request message from binding to service (Request from client)
+== (1) Request message from binding to service
 The request message is converted from the binding message type to the internal service type. For this to happen, a call to *HttpMessageComposer.compose()*.
 
 In this method two things will happen:
@@ -1661,10 +1701,10 @@ WARNING: When checking for headers, or defining headers in Binding's RegEx Inclu
 
 * It will return the *Message*.
 
-==== (2) Service component implementations execution
+== (2) Service component implementations execution
 The request pipelines of a component will be executed, until a there is a call to an external HTTP service.
 
-==== (3) Request message from reference to binding (External service call)
+== (3) Request message from reference to binding
 A call to the external service is about to happen, and message needs to be converted from SwitchYard message to the reference binding data.
 
 * A call to *HttpMessageComposer.decompose(Exchange, HttpRequestBindingData)* will be done. This method will:
@@ -1672,7 +1712,7 @@ A call to the external service is about to happen, and message needs to be conve
 ** Calls *HttpContextMapper.mapTo(Request)* to copy headers from the Message`s *Context* to the HttpRequestBindingData's http headers. These properties will be copied only if they match the registered regexp expressions in the MessageComposer's design time configuration or if the properties are marked with the EndpointLabel.HTTP label in the Context.
 
 
-==== (4) Response message from binding to reference (Response from remote service)
+== (4) Response message from binding to reference
 Once the external service has being executed, we have to deal with the response from this external service, and map it back into SwitchYard. To to this, a call to *HttpMessageComposer.compose(HttpResponseBindingData, Exchange) will be done. This method will:
 
 * Create a Message
@@ -1687,10 +1727,10 @@ NOTE: Headers are not automatically copied, you have to add to messageComposer w
 
 * It will return the *Message*.
 
-==== (5) Service execution
+== (5) Service execution
 The rest of the components` pipeline will be executed.
 
-==== (6) Response message from service to binding (Response to client caller)
+== (6) Response message from service to binding
 When our application has ended it's execution and it is returning the result to the caller, it will call again *HttpMessageComposer.decompose(Exchange, HttpResponseBindingData)* to convert the SwitchYard message to the binding message or content.
 It will:
 * Get statusCode from Context property *HttpContextMapper.HTTP_RESPONSE_STATUS* that has been established as part of the SwitchYard service execution.
@@ -1704,7 +1744,7 @@ NOTE: This property could be the one that was set from the invocation to the ext
 ** If the property is *HttpContextMapper.HTTP_RESPONSE_STATUS* it will set the status on the HttpResponseBindingData
 
 
-== How to pass a header from an incoming request to use it in the SwitchYard application
+== HOWTO pass a header from an incoming request to use it in the SwitchYard application
 You need to add the header in the Message Composer design time configuration screen for the Composite Service Http Binding.
 
 image::switchyard/core/pass_header.png[Authorization header]
@@ -1713,36 +1753,36 @@ NOTE: Remember that headers are *lowercased*.
 
 If you want to progress this header to a Composite Reference, you need to add it again to the Composite Reference Http Binding's Message Composer design time configuration screen
 
-== How to send a header to an outgoing request
+== HOWTO send a header to an outgoing request
 You need to add the header in the context of the invocation with EndpointLabel.HTTP. To be able to modify aspects of the call to the reference, this need to be done as a ReferenceInvoker rather than as a regular Reference.
 
 [source,java]
 ----
-   @Inject
-   @Reference("RealHttpService")
-   private ReferenceInvoker referenceInvoker;
+@Inject
+@Reference("RealHttpService")
+private ReferenceInvoker referenceInvoker;
 
-	public String myBeanMethod(String params){
-	String replyContent = "";
-		ReferenceInvocation invocation = null;
+public String myBeanMethod(String params){
+   String replyContent = "";
+   ReferenceInvocation invocation = null;
 
-		try{
-			invocation = referenceInvoker.newInvocation();
-	   	Context context = invocation.getMessage().getContext();
+   try{
+      invocation = referenceInvoker.newInvocation();
+      Context context = invocation.getMessage().getContext();
 
-	   	// Set the header we want
-	   	context.setProperty("Authorization", "xxxx").addLabels(EndpointLabel.HTTP.label());
+      // Set the header we want
+      context.setProperty("Authorization", "xxxx").addLabels(EndpointLabel.HTTP.label());
 
-	   	// Call the service
-	   	replyContent = invocation.invoke(params).getMessage().getContent(String.class);
-	   }catch(Exception e){
-			// Manage exception
-	   }
-   	return replyContent;
+      // Call the service
+      replyContent = invocation.invoke(params).getMessage().getContent(String.class);
+   }catch(Exception e){
+      // Manage exception
    }
+   return replyContent;
+}
 ----
 
-== How to change configuration for calling service (method, queryString, queryArgs). How to invoke dynamically
+== HOWTO change configuration for calling service (method, queryString, queryArgs). How to invoke dynamically
 
 WARNING: This is not possible with HTTP Binding reference. You have to use Camel binding reference.
 
@@ -1752,73 +1792,80 @@ To be able to modify aspects of the call to the reference, this need to be done 
 
 [source,java]
 ----
-   @Inject
-   @Reference("RealHttpService")
-   private ReferenceInvoker referenceInvoker;
+@Inject
+@Reference("RealHttpService")
+private ReferenceInvoker referenceInvoker;
 
-	public String myBeanMethod(String params){
-	String replyContent = "";
-		ReferenceInvocation invocation = null;
+public String myBeanMethod(String params){
+   String replyContent = "";
+   ReferenceInvocation invocation = null;
 
-		// We get information from incoming request
-      HttpRequestInfo requestInfo = msgContext.getPropertyValue(HttpComposition.HTTP_REQUEST_INFO);
+   // We get information from incoming request
+   HttpRequestInfo requestInfo = msgContext.getPropertyValue(HttpComposition.HTTP_REQUEST_INFO);
 
-		try{
-			invocation = referenceInvoker.newInvocation();
-	   	Context context = invocation.getMessage().getContext();
+   try{
+      invocation = referenceInvoker.newInvocation();
+      Context context = invocation.getMessage().getContext();
 
-	   	// We copy (progress)  method, path and query string
-	   	context.setProperty(org.apache.camel.Exchange.HTTP_METHOD, requestInfo.getMethod());
-      	context.setProperty(org.apache.camel.Exchange.HTTP_URI, "http://localhost:8080" +  requestInfo.getPathInfo());
-      	context.setProperty(org.apache.camel.Exchange.HTTP_QUERY, requestInfo.getQueryString());
+      // We copy (progress)  method, path and query string
+      context.setProperty(org.apache.camel.Exchange.HTTP_METHOD, 
+                              requestInfo.getMethod());
+      context.setProperty(org.apache.camel.Exchange.HTTP_URI, 
+                              "http://localhost:8080" +  requestInfo.getPathInfo());
+      context.setProperty(org.apache.camel.Exchange.HTTP_QUERY, 
+                              requestInfo.getQueryString());
 
-	   	// Call the service
-	   	replyContent = invocation.invoke(params).getMessage().getContent(String.class);
-	   }catch(Exception e){
-			// Manage exception
-	   }
-   	return replyContent;
+      // Call the service
+      replyContent = invocation.invoke(params).getMessage().getContent(String.class);
+   }catch(Exception e){
+      // Manage exception
    }
+   return replyContent;
+}
 ----
 
-== How to check the status code of an invocation to an external service
+== HOWTO check the status code of an invocation to an external service
 You need to check for the following context Property *HttpContextMapper.HTTP_RESPONSE_STATUS*
 
 ----
-   @Inject
-   @Reference("RealHttpService")
-   private ReferenceInvoker referenceInvoker;
+@Inject
+@Reference("RealHttpService")
+private ReferenceInvoker referenceInvoker;
 
-	public String myBeanMethod(String params){
-	String replyContent = "";
-		ReferenceInvocation invocation = null;
+public String myBeanMethod(String params){
+   String replyContent = "";
+   ReferenceInvocation invocation = null;
 
-		try{
-			invocation = referenceInvoker.newInvocation();
-			....
-	   	// Call the service
-	   	replyContent = invocation.invoke(params).getMessage().getContent(String.class);
-	   }catch(Exception e){
-			int statusCode = invocation.getContext().getPropertyValue(HttpContextMapper.HTTP_RESPONSE_STATUS)
-			// Manage exception
-			...
-	   }
-   	return replyContent;
+   try{
+      invocation = referenceInvoker.newInvocation();
+      ....
+      // Call the service
+      replyContent = invocation.invoke(params).getMessage().getContent(String.class);
+   }catch(Exception e){
+      int statusCode = invocation
+                         .getContext()
+                         .getPropertyValue(HttpContextMapper.HTTP_RESPONSE_STATUS);
+      // Manage exception
+      ...
    }
+   return replyContent;
+}
 ----
 
-== How to set the status code of an invocation to a SwitchYard application
+== HOWTO set the status code of an invocation to a SwitchYard application
 You need to set the following context Property *HttpContextMapper.HTTP_RESPONSE_STATUS* with label *EndpointLabel.HTTP*. In order to do this in a component, you need to create a new Message and send it to the Exchange.
 
 In a BeanComponent:
 
 [source,java]
 ----
-   private void replyWithHTTPStatusCode(Exchange currentExchange, int statusCode) {
-      Message reply = currentExchange.createMessage();
-      reply.getContext().setProperty(HttpContextMapper.HTTP_RESPONSE_STATUS, statusCode).addLabels(EndpointLabel.HTTP.label());
-      currentExchange.send(reply);
-   }
+private void replyWithHTTPStatusCode(Exchange currentExchange, int statusCode) {
+   Message reply = currentExchange.createMessage();
+   reply.getContext().setProperty(HttpContextMapper.HTTP_RESPONSE_STATUS, 
+                                  statusCode)
+                     .addLabels(EndpointLabel.HTTP.label());
+   currentExchange.send(reply);
+}
 ----
 
 In a CamelComponent:
@@ -1827,26 +1874,50 @@ In a Route:
 
 [source,java]
 ----
-	.to("EXTERNAL_SERVICE")
-	.setHeader(HttpContextMapper.HTTP_RESPONSE_STATUS, constant(200))
+.to("EXTERNAL_SERVICE")
+.setHeader(HttpContextMapper.HTTP_RESPONSE_STATUS, constant(200))
 ----
 
 In a Processor:
 
 [source,java]
 ----
-    exchange.getIn().setHeader(HttpContextMapper.HTTP_RESPONSE_STATUS, statusCode);
+exchange.getIn().setHeader(HttpContextMapper.HTTP_RESPONSE_STATUS, statusCode);
 ----
 
-== How to copy all HTTP incoming headers and progress them
+== HOWTO copy all HTTP incoming headers and progress them
 Right now there is no way to copy all headers from Http service binding to an Http Reference Binding but to specify all the headers you want to copy in the regex includes field for both MessageComposers.
 Another option is to create your own MessageComposer, that extends the basic HttpMessageComposer and copy all the headers in the context in the Service Binding, and then set them back in the Reference Binding.
 
+== Context Properties
+
+*org.switchyard.Property*: Represents a context property consisting of a name, scope, and value and a set of labels.
+
+
 == SwitchYard - Scopes
+Two scopes exist when defining and setting properties into the *org.switchyard.Context*:
 
-* Headers are scoped as MESSAGE. You will see some headers specifically useful for http requests, and other headers specifically useful for http responses.  In both cases, they are most likely tied to the binding's notion of an incoming message or an outgoing message.
+* *Scope.EXCHANGE*: Properties available for the duration of an exchange.
+* *Scope.MESSAGE*: Properties available as part of a message.
 
-* Properties are scoped as EXCHANGE, as this is most likely application or domain data, and possibly useful in the entire processing of the Exchange.
+NOTE: *Headers are scoped as MESSAGE*. You will see some headers specifically useful for http requests, and other headers specifically useful for http responses. 
+In both cases, they are most likely tied to the binding's notion of an incoming message or an outgoing message.
+
+NOTE:  *Properties are scoped as EXCHANGE*, as this is most likely application or domain data, and possibly useful in the entire processing of the Exchange.
+
+== SwitchYard - Labels
+
+See: org.switchyard.label.Label
+
+* prefix: org.switchyard.label.
+* label_type: http,
+* label_name: xxx
+
+Label: prefix.<label_type>.<label_name>
+
+EndpointLabels names: AMQP, ATOM, DIRECT, FILE, FTP, FTPS, HTTP, JCA, JMS, JPA, MAIL, MOCK, QUARTZ, REST, SEDA, SFTP, SOAP, SQL, TCP, TIMER, UDP, URI
+
+Label: org.switchyard.label.Label.endpoint.<name>
 
 == Switchyard - Custom Context Mappers
 
