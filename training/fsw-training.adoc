@@ -1894,7 +1894,7 @@ Another option is to create your own MessageComposer, that extends the basic Htt
 *org.switchyard.Property*: Represents a context property consisting of a name, scope, and value and a set of labels.
 
 
-== SwitchYard - Scopes
+== Scopes
 Two scopes exist when defining and setting properties into the *org.switchyard.Context*:
 
 * *Scope.EXCHANGE*: Properties available for the duration of an exchange.
@@ -1905,19 +1905,43 @@ In both cases, they are most likely tied to the binding's notion of an incoming 
 
 NOTE:  *Properties are scoped as EXCHANGE*, as this is most likely application or domain data, and possibly useful in the entire processing of the Exchange.
 
-== SwitchYard - Labels
+== Labels
+Labels are a way to mark a Context Property, and relate it to a SwitchYard funcionality.
 
-See: org.switchyard.label.Label
+Base class is *org.switchyard.label.Label*
 
-* prefix: org.switchyard.label.
-* label_type: http,
-* label_name: xxx
+There are 5 types of labels (OOTB):
 
-Label: prefix.<label_type>.<label_name>
+* *BehaviorLabel*: Marks the property relative to certain actions and/or behavior. (Copy of context,...) (label type: *behavior*)
+** _TRANSIENT_: the property will not be preserved in a copy of the Exchange via Context.copy()
+* *ComponentLabel*: Marks the property relative to certain component (label type: *component*)
+** CAMEL, HORNETQ, HTTP, JCA, RESTEASY, SOAP
+* *EnpointLabel*: Marks the property relative to Endpoint related actions (context composition, message composers,...) (label type: *endpoint*)
+** AMQP, ATOM, DIRECT, FILE, FTP, FTPS, HTTP, JCA, JMS, JPA, MAIL, MOCK, QUARTZ, REST, SEDA, SFTP, SOAP, SQL, TCP, TIMER, UDP, URI
+* *HttpInvokerLabel*: Marks the property to be used as a header in the HTTPInvoker (label type: *httpinvoker*) 
+** HEADER
+* *PropertyLabel*: Marks the type of the property (label type: *property*)
+** HEADER, PROPERTY
 
-EndpointLabels names: AMQP, ATOM, DIRECT, FILE, FTP, FTPS, HTTP, JCA, JMS, JPA, MAIL, MOCK, QUARTZ, REST, SEDA, SFTP, SOAP, SQL, TCP, TIMER, UDP, URI
+== Labels (for humans)
+A label is composed following this rule:
 
-Label: org.switchyard.label.Label.endpoint.<name>
+----
+prefix.<lowercase(label_type)>.<lowercase(label_name)> 
+----
+
+* prefix: "org.switchyard.label."
+* label type: (behavior, component, endpoint, httpinvoker, property)
+* label name: (TRANSIENT, CAMEL, HTTP, JCA,....., HEADER, PROPERTY)
+
+Examples:
+----
+org.switchyard.label.Label.behavior.transient
+org.switchyard.label.Label.endpoint.http
+org.switchyard.label.Label.endpoint.soap
+org.switchyard.label.Label.component.soap
+org.switchyard.label.Label.property.header
+----
 
 == Switchyard - Custom Context Mappers
 
@@ -2534,71 +2558,1144 @@ Once the instances are up, you can deploy applications independently to each ins
  TODO: Create this
 
 == SwitchYard - Testing SwitchYard application
-Switchyard testing capabilities rely on JUnit4.
+SwitchYard provides classes to help you do unit tests with JUnit4 testing framework. 
 
-* SwitchYardRunner
-* SwitchYardTestKit
-* SwitchYardTestCaseConfig
+== SwitchYardRunner
+In order to take advantage of the test support in SwitchYard, ensure that your unit test is annotated with the SwitchYardRunner JUnit test Runner class. 
 
- TODO: Create this
+The SwitchYardRunner creates and starts an embedded runtime for each test method.
 
-== SwitchYard - Testing - SwitchYardRunner
+After the embedded runtime starts, the project containing the test is packaged as a SwitchYard application and deployed to it.
 
- TODO: Create this
+An instance of the SwitchYardTestKit class is injected into the test when a property of type SwitchYardTestKit is declared in the test.
 
-== SwitchYard - Testing - SwitchYardTestKit
+This instance represents the runtime state of the deployed SwitchYard test application.
 
- TODO: Create this
+== SwitchYard JUnit example
 
-== SwitchYard - Testing - SwitchYardTestCaseConfig
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+public class MyServiceTest  {
 
-* config
-* mixins
-* scanner
+    private SwitchYardTestKit testKit;
 
- TODO: Create this
+    @Test
+    public void testOperation() {
+        MyTestServiceHandler service = new MyTestServiceHandler();
 
-== SwitchYard - Testing - MixIns
+        // register the service...
+        testKit.registerInOutService("MyService", service);
 
-* CDIMixIn
-* HTTPMixIn
-* SmooksMixIn
-* HornetQMixIn
-* JCAMixIn
-* NamingMixIn
-* PropertyMixIn
- 
- TODO: Create this
+        // invoke the service and capture the response...
+        Message response = newInvoker("MyService")
+        .sendInOut("<create>A1234</create>");
 
-== SwitchYard - Testing - Scanners
+        // test the response content by doing an XML comparison with a
+        // file resource on the classpath...
+        testKit.compareXMLToResource(response.getContent(String.class), 
+                                     "/myservice/expected-create-response.xml");
+    }
+
+    private class MyTestServiceHandler implements ExchangeHandler {
+        // implement methods....
+    }
+}
+----
+
+== SwitchYardTestKit
+SwitchYardTestKit represents the runtime state of the deployed SwitchYard test application.
+
+The SwitchYardTestKit class provides a set of utility methods for performing all sorts of deployment configuration and test operations.
+
+This class gets injected when we use SwitchYardRunner and we have declared an instance of *SwitchYardTestKit* type.
+
+We do not need to add injection annotation to this type.
+
+
+== SwitchYardTestCaseConfig
+The SwitchYardTestCaseConfig annotation is optional.
+
+You can use it control the behavior of the SwitchYardRunner:
+
+=== config 
+
+* Allows the specification of a SwitchYard XML configuration file (switchyard.xml) for the test.
+* The SwitchYardRunner will attempt to load the specified configuration from the classpath.
+* If it fails to locate the config on the classpath, it will then attempt to locate it on the file system (e.g. within the project structure).
+
+=== mixins
+
+* Enables you to add specific testing tools to your test case.
+* Each TestMixIn is a composition-based method that provides customized testing tools for service implementations, gateway bindings, and transformers.
+* When a TestMixIn is annotated on a test class, the SwitchYardRunner handles all the initialization and cleanup (lifecycle) of the TestMixIn instances.
+* It is also possible to manually create and manage TestMixIn instances within your test class if you are not using the SwitchYardRunner.
+
+=== scanner
+
+* Enables you to add classpath scanning as part of the test lifecycle. This adds the same Scanner behavior as the one available with the SwitchYard maven build plugin.
+* It allows the scanning to take place as part of the test lifecycle.
+* You may need to add Scanners if you want your test to run inside your IDE. This is because running your test inside your IDE bypasses the whole maven build process, which means the build plugin does not perform any scanning
+
+== SwitchYardTestCaseConfig example
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(config = "testconfigs/switchyard-01.xml", mixins = {CDIMixIn.class}, scanners = {BeanSwitchYardScanner.class, TransformSwitchYardScanner.class})
+public class MyServiceTest  {
+
+    @Test
+    public void testOperation() {
+        newInvoker("OrderService")
+        .operation("createOrder")
+        .sendInOnly("<order><product>AAA</product><quantity>2</quantity></order>");
+    }
+}
+----
+
+== mixins
+The TestMixIn feature allows you to selectively enable additional test functionality based on the capabilities of your application.
+
+To include MixIn support in your application, you must include a Maven dependency in your application's pom.xml:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.switchyard.components</groupId>
+    <artifactId>switchyard-component-test-mixin-name</artifactId>
+    <version>release-version</version> <!-- e.g. "1.0" -->
+    <scope>test</scope>
+</dependency>
+----
+
+== Available mixins
+
+* *CDIMixIn* (switchyard-component-test-mixin-cdi): boostraps a stand-alone CDI environment, automatically discovers CDI beans, registers bean services, and injects references to SwitchYard services.
+* *HTTPMixIn* (switchyard-component-test-mixin-http): client methods for testing HTTP-based services.
+* *SmooksMixIn* (switchyard-component-test-mixin-smooks): stand-alone testing of any Smoooks transformers in your application.
+* *HornetQMixIn* (switchyard-component-test-mixin-hornetq): bootstraps a stand-alone HornetQ server and provides utility methods to interact with it for testing purpose. It can be also used to interact with remote HornetQ server.
+* *JCAMixIn* (switchyard-component-test-mixin-jca): bootstraps a embedded IronJacamar JCA container and provides utility methods to interact with it for testing purpose. It has a MockResourceAdapter feature to simulate the SwitchYard application behavior without connecting to the real EIS systems. JCAMixIn has been deprecated. It will be removed from the distribution in the future. JCA testing capabilities also provide wiht a *TransactionMixIn*.
+* *NamingMixIn* (switchyard-component-test-mixin-naming): provides access to naming and JNDI services within an application.
+* *PropertyMixIn* (switchyard-test): provides ability to set test values to properties that are used within the configuration of the application
+
+
+== Available scanners
 
 * *BeanSwitchYardScanner*: Scans for CDI Bean Service implementations.
 * *TransformSwitchYardScanner*: Scans for Transformers.
 * *BpmSwitchYardScanner*: Scans for @Process, @StartProcess, @SignalEvent and @AbortProcessInstance annotations.
 * *RouteScanner*: Scans for Camel Routes.
 * *RulesSwitchYardScanner*: Scans for @Rule annotations.
-  
- TODO: Create this
 
-== SwitchYard - Testing - Metadata and support injection
-  
-* TestKit Injection
-* Deployment Injection
-* SwitchYardModel Injection
-* ServiceDomain Injection
-* TransformerRegistry Injection
-* TestMixIn Injection
-* PropertyMixIn Injection
-* Invoker Injection
- TODO: Create this
+== Enabling test support
+Adding test support to your SwitchYard application is simply a matter of adding a dependency to the switchyard-test module in your application's pom.xml.
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.switchyard</groupId>
+    <artifactId>switchyard-test</artifactId>
+    <version>[release-version]</version> <!-- e.g. "1.1.1-p5-redhat-1" -->
+    <scope>test</scope>
+</dependency>
+----
+Note: camel dependency version is 2.10.0.redhat-60024
+
+In addition to a dependency on the core test framework, you might want to take advantage of MixIns in your test classes.
+
+== Metadata and Support Class Injections
+Some support classes can be injected into a SwitchYard Junit test by SwitchYardRunner.
+
+== TestKit Injection
+Injecting the SwitchYardTestKit instance into the test at runtime is simply a case of declaring a property of that type in the test class.
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+public class MyServiceTest  {
+
+    private SwitchYardTestKit testKit;
+
+    // implement test methods...
+}
+----
+
+== Deployment Injection
+You can inject the deployment instance by declaring a property of the type Deployment.
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+public class MyServiceTest  {
+
+    private Deployment deployment;
+
+    // implement test methods...
+}
+----
+
+== SwitchYardModel Injection
+You can inject the SwitchYardModel instance by declaring a property of the type SwitchYardModel.
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+public class MyServiceTest  {
+
+    private SwitchYardModel model;
+
+    // implement test methods...
+}
+----
+
+== ServiceDomain Injection
+You can inject the ServiceDomain instance by declaring a property of the type ServiceDomain.
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+public class MyServiceTest  {
+
+    private ServiceDomain serviceDomain;
+
+    // implement test methods...
+}
+----
+
+== TransformerRegistry Injection
+You can inject the TransformerRegistry instance by declaring a property of the type TransformerRegistry.
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+public class MyServiceTest  {
+
+    private TransformerRegistry transformRegistry;
+
+    // implement test methods...
+}
+----
+
+== TestMixIn Injection
+You can inject the TestMixIn Injection instance by declaring a property of the type TestMixIn Injection.
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(mixins = {CDIMixIn.class, HTTPMixIn.class})
+public class MyServiceTest  {
+
+    private CDIMixIn cdiMixIn;
+    private HTTPMixIn httpIn;
+
+    // implement test methods...
+}
+----
+
+== PropertyMixIn Injection
+PropertyMixIn instances are injected like any other TestMixIn type.
+
+NOTE: You must set any properties you wish to use on the MixIn before deployment in order for them to be useed. To do so, use of the *@BeforeDeploy* annotation.
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(mixins = {CDIMixIn.class, PropertyMixIn.class, HTTPMixIn.class})
+public class MyServiceTest  {
+
+    private PropertyMixIn propMixIn;
+    private HTTPMixIn httpMixIn;
+
+    @BeforeDeploy
+    public void setTestProperties() {
+        propMixIn.set("soapPort", Integer.valueOf(18002));
+    }
+
+    // implement test methods...
+}
+----
+
+== Invoker Injection
+To inject Service Invoker instances, declare properties of the type Invoker and annotate them with @ServiceOperation. (Note the annotation value is a dot-delimited Service Operation name of the form [service-name].[operation-name].)
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(config = "testconfigs/switchyard-01.xml")
+public class MyServiceTest  {
+
+   @ServiceOperation("OrderService.createOrder")
+   private Invoker createOrder;
+
+   @Test
+   public void test_createOrder() {
+      createOrder.sendInOnly("<order><product>AAA</product><quantity>2</quantity></order>");
+   }
+}
+----
+
+== TIPS: Using harmcrest to assert
+Hamcrest is a framework for writing matcher objects allowing 'match' rules to be defined declaratively.
+
+We can use Hamcrest's *assertThat* construct and the standard set of matchers, both of which can be statically imported.
+
+[source,java]
+----
+import static org.hamcrest. MatcherAssert .assertThat;
+import static org.hamcrest. Matchers .*;
+----
+
+Hamcrest comes with a library of useful matchers. Here are some of the most important ones.
+
+* Core
+** anything: always matches, useful if you don't care what the object under test is
+** describedAs: decorator to adding custom failure description
+** is: decorator to improve readability
+* Logical
+** allOf: matches if all matchers match, short circuits (like Java &&)
+** anyOf: matches if any matchers match, short circuits (like Java ||)
+** not: matches if the wrapped matcher doesn't match and vice versa
+* Object
+** equalTo: test object equality using Object.equals
+** hasToString: test Object.toString
+** instanceOf, isCompatibleType: test type
+** notNullValue, nullValue: test for null
+** sameInstance: test object identity
+* Beans
+** hasProperty: test JavaBeans properties
+* Collections
+** array: test an array's elements against an array of matchers
+** hasEntry, hasKey, hasValue: test a map contains an entry, key or value
+** hasItem, hasItems: test a collection contains elements
+** hasItemInArray: test an array contains an element
+* Number
+** closeTo: test floating point values are close to a given value
+** greaterThan, greaterThanOrEqualTo, lessThan, lessThanOrEqualTo: test ordering
+* Text
+** equalToIgnoringCase: test string equality ignoring case
+** equalToIgnoringWhiteSpace: test string equality ignoring differences in runs of whitespace
+** containsString, endsWith, startsWith: test string matching
+
+== Invoke a component service
+In order to invoke a component service, a invoker must be injected for certain ServiceOperation.
+
+When injecting a service operation, we must specify it in *"[service_name].[operation_name]"* notation.
+
+[source,java]
+----
+import org.switchyard.test.Invoker;
+...
+
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(mixins = CDIMixIn.class)
+public class ExampleServiceTest {
+
+   @ServiceOperation("ExampleService.submitOperation")
+   private Invoker submitOperation;
+
+   @Test
+   public void testOK() throws Exception {
+      ParamIn testParam = new ParamIn().set...(...);
+
+      ParamOut result = submitOperation.sendInOut(testParam)
+                                       .getContent(ParamOut.class);
+
+      Assert....
+   }
+
+   @Test
+   public void testForFault() throws Exception {
+      ParamIn testParam = new ParamIn().set...(...);
+
+      try{
+         // This method invocation should throw a fault
+         ParamOut result = submitOperation.sendInOut(testParam)
+                                          .getContent(ParamOut.class);
+
+         Assert.fail();
+      } catch (InvocationFaultException ifex){
+         Assert.... // Assert for correct type of exception
+      }
+   }
+}
+----
+
+== TIP Checking for exceptions
+An invocation to a service operation can throw a *InvocationFaultException* whenever the method should throw a fault. So catching this exception is similar to validating for the fault being trhown. We will check against original exception, checking the type of the InvocationFaultException
+
+[source,java]
+----
+ifex.isType(MyOriginalException.class)
+----
+
+Or we can use the provided functionality by JUnit setting the expected exception in the test
+
+[source,java]
+----
+@Test(expected=org.switchyard.test.InvocationFaultException.class)
+----
+
+== Use SwitchYardTestKit utility methods to ease testing
+TestKit provides with a set of utility methods to ease validations and some common operations that are performed on test classes.
+
+* Access to underlyings
+** *getTestInstance*:
+** *getActivators*:
+** *getDeployment*:
+** *getServiceDomain*:
+** *createQName*:
+
+* Service manipulation
+** *registerInOutService*:
+** *registerInOnlyService*:
+** *removeService*:
+** *replaceService*:
+
+* Invocation
+** *newInvoker*:
+
+* Transformations
+** *addTransformer*:
+** *newTransformer*:
+** *registerTransformer*:
+
+* MixIns
+** *getMixIns*:
+** *getMixIn*:
+
+* Dependencies
+** *getRequiredDependencies*:
+** *getOptionalDependencies*:
+
+* Resources
+** *getResourceAsStream*:
+** *readResourceBytes*:
+** *readResourceString*: Reads a resource (file) form the classpath
+** *readResourceDocument*:
+
+* Configruation
+** *loadSwitchYardModel*:
+** *loadConfigModel*:
+
+* XML Comparisson
+** *compareXMLToResource*: Compares a XML in string format with a XML file in the classpath.
+** *compareXMLToString*:
+
+* Tracing
+** *traceMessages*: enables message tracing for the application under test.
+
+== org.switchyard.test.MockHandler
+
+TODO: Document Mock Handlers
+
+== TIP Test for transformations in component service
+When we test a component invocation, we can test for the appropiate transformation with additional methods on the invocation, for the input transformation as well as for the output transformation:
+
+[source,java]
+----
+...
+
+@ServiceOperation("ExampleService.submitOperation")
+private Invoker serviceOperationInvocation;
+
+@Test
+public void testForInputTransformation() throws Exception {
+   ParamOut result =  serviceOperationInvocation
+                        .inputType(
+                           QName.valueOf("{urn:com.example:service:1.0"}submitOperation))
+                        .sendInOut(....)
+                        .getContent(ParamOut.class);
+   Assert....  // Assert that result is OK, so transformation was OK
+}
+
+@Test
+public void testForOutputXMLTransformation() throws Exception {
+   ParamIn testParam = new ParamIn().set...(...);
+
+   ParamOut result = serviceOperationInvocation
+                        expectedOutputType(
+                           QName.valueOf("{urn:com.example:service:1.0"}submitOperationResponse))
+                     .sendInOut(testParam)
+                     .getContent(Element.class); // Expect XML Element from transformation
+
+   XMLAssert....  // Assert that result is what is expected
+}
+----
+NOTE: We can use XMLUnit and XMLAssert from *org.custommonkey.xmlunit* to ease validations.
+
+== TIP Test for transformations in component service using HTTPMixIn
+NOTE: You have to add the TransformSwitchYardScanner scanner
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(
+        config = SwitchYardTestCaseConfig.SWITCHYARD_XML,
+        scanners = TransformSwitchYardScanner.class,
+        mixins = {CDIMixIn.class, HTTPMixIn.class})
+public class WebServiceTest {
+
+   private HTTPMixIn httpMixIn;
+
+   @Test
+   public void invokeOrderWebService() throws Exception {
+      // Use the HttpMixIn to invoke the SOAP binding endpoint with a SOAP input
+      // (from the test classpath) and compare the SOAP response to a 
+      // SOAP response resource (from the test classpath)...
+      httpMixIn.setContentType("application/soap+xml");
+      httpMixIn.postResourceAndTestXML("http://localhost:18001/quickstart/OrderService", 
+                                       "/xml/soap-request.xml", 
+                                       "/xml/soap-response.xml");
+   }
+}
+----
+
+== TIP Test for validations in component service
+When we test a component invocation, validations will be tested (as were tested transformations) with an invocation to the TestInvoker, as shown in the previous example.
+
+[source,java]
+----
+...
+
+@ServiceOperation("ExampleService.submitOperation")
+private Invoker serviceOperationInvocation;
+
+@Test
+public void testForMessageValidation() throws Exception {
+   ParamOut result =  serviceOperationInvocation
+                     .inputType(
+                           QName.valueOf("{urn:com.examaple:service:1.0"}submitOperation))
+                     .sendInOut(....)
+                     .getContent(ParamOut.class);
+   Assert....  // Assert that result is OK, so validation was OK
+}
+----
+
+== TIP Test for validations in component service using HTTPMixin
+You can also use HTTPMixIn for testing validations.
+
+NOTE: You have to add the ValidateSwitchYardScanner scanner
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(
+        config = SwitchYardTestCaseConfig.SWITCHYARD_XML,
+        scanners = ValidateSwitchYardScanner.class,
+        mixins = {CDIMixIn.class, HTTPMixIn.class})
+public class WebServiceTest {
+
+   private HTTPMixIn httpMixIn;
+
+   @Test
+   public void invokeOrderWebService() throws Exception {
+      // Use the HttpMixIn to invoke the SOAP binding endpoint with a SOAP input
+      // (from the test classpath) and compare the SOAP response to a 
+      // SOAP response resource (from the test classpath)...
+      httpMixIn.setContentType("application/soap+xml");
+      httpMixIn.postResourceAndTestXML("http://localhost:18001/quickstart/OrderService", 
+                                       "/xml/soap-request.xml", 
+                                       "/xml/soap-response.xml");
+   }
+}
+----
+
+== TIP Mock a service, component or reference
+Sometimes it is useful to mock a component, so it is never invoked for the shake of a test. 
+For this, SwitchYardTestKit provides with the ability of adding, replacing or removing services.
+
+[source,java]
+----
+    // replace existing implementation for testing purposes
+    testKit.removeService("MyService");
+    final MockHandler myService = testKit.registerInOnlyService("MyService");
+
+    .... // Invoke the service under test
+
+    // Assert what has arrived ath the mocked service
+    final LinkedBlockingQueue<Exchange> recievedMessages = myService.getMessages();
+    assertThat(recievedMessages, is(notNullValue()));
+
+    final Exchange recievedExchange = recievedMessages.iterator().next();
+    assertThat(recievedExchange.getMessage().getContent(String.class), is(equalTo(...)));
+
+----
+
+When we want to assert what has arrived/produced the MockHandler, we can get:
+
+* getMessages(): This provides with the list of received messages.
+* getFaults(): This provides with the list of produced faults.
+
+Sometimes service is InOut, so we need to mock a response. There are four options:
+
+* forwardInToOut()
+* forwardInToFault()
+* replyWithOut(Object)
+* replyWithFault(Object)
+
+[source,java]
+----
+    final MockHandler mockHandler = testKit.registerInOutService("MyService");
+    mockHandler.forwardInToOut();
+----
+
+We can also instruct the MockHandler to wait for certain message.
+
+* waitForOkMessage()
+* waitForFaultMessage()
+
+It will wait for 5 seconds (default) unless instructed to wait for a different period with *setWaitTimeout(milis)*
+
+== TIP Mock a service for more than 1 method invocation
+There are some cases where the service we are mocking is being called two times in the context of a single unit test,
+maybe multiple calls to the same method, or to different methods.
+For this particular case, we can register an *ExchangeHandler* with the mock,
+while registering and replacing the original service, that will get the message, and where
+we will have to put some logic to deal with this scenario.
+
+[source,java]
+----
+    testKit.replaceService(qname, new ExchangeHandler() {
+
+        @Override
+        public void handleMessage(Exchange arg0) throws HandlerException {
+            // Here logic to handle with messages
+        }
+
+        @Override
+        public void handleFault(Exchange arg0) throws HandlerException {
+            // Here logic to handle with faults
+        }
+    });
+----
+
+If this ExchangeHandler needs to be reused, of course, can be made a named class (not anonymous).
+
+== TIP MockHandler for testing one method multiple invocations
+In this scenario, the ExchangeHandler needs to keep track of which invocation number it was in case has to answer with different messages
+
+[source,java]
+----
+testKit.replaceService(qname, new ExchangeHandler() {
+   int call=1;
+
+   @Override
+   public void handleMessage(Exchange exchange) throws HandlerException {
+      if (call++ == 1){ // First call
+         // Do whatever wants to be done as result of this operation call, 
+         // and return the expected output
+         Result result = ...; / Result is return type for operation store
+         exchange.send(exchange.createMessage().setContent(result));
+      }else if (call++ == 2){ // Second call
+         // Do whatever wants to be done as result of this operation call, 
+         // and return the expected output
+         Result result = ...; / Result is return type for operation store
+         exchange.send(exchange.createMessage().setContent(result));
+      }else{
+         throw new HandlerException("This mock should not be called more than 2 times");
+      }
+   }
+
+   @Override
+   public void handleFault(Exchange exchange) throws HandlerException {
+      // Here logic to handle with faults
+   }
+});
+----
+
+== TIP MockHandler for testing different methods
+In this scenario, the ExchangeHandler used will have to check for operation name, to know which method is being invoked.
+
+
+[source,java]
+----
+testKit.replaceService(qname, new ExchangeHandler() {
+
+   @Override
+   public void handleMessage(Exchange exchange) throws HandlerException {
+      if (exchange.getContract().getProviderOperation().getName().equals("store")){
+         // Do whatever wants to be done as result of this operation call, 
+         // and return the expected output
+         Result result = ...; / Result is return type for operation store
+         exchange.send(exchange.createMessage().setContent(result));
+      }else if (exchange.getContract().getProviderOperation().getName().equals("getId")){
+         // Do whatever wants to be done as result of this operation call, 
+         // and return the expected output
+         exchange.send(exchange.createMessage().setContent(1)); // This operation returns a Int
+      }else{
+         throw new HandlerException("No operation with that name should be executed");
+      }
+   }
+
+   @Override
+   public void handleFault(Exchange exchange) throws HandlerException {
+      // Here logic to handle with faults
+   }
+});
+----
+
+== TIP How to add credentials before invoking a Service
+When there is a service that uses credentials for routing or logic, we need to inject this credentials also in testing, so we do not need to modify our application logic.
+To do so, we can add the required credentials to the invocation before calling the actual service.
+
+NOTE: It is a hack for SwitchYard version 1.1 (https://issues.jboss.org/browse/SWITCHYARD-2031)
+
+[source,java]
+----
+    protected SecurityContextManager securityMgr;
+
+    @Before
+    public void onCreate() {
+        securityMgr = new SecurityContextManager(testKit.getServiceDomain());
+    }
+
+    ...
+    service.operation("deleteEnterprises").sendInOut(addCredentials(message))
+                .getContent(DeleteEnterpriseResponse.class);
+    ...
+
+    @SuppressWarnings("unchecked")
+    private <T> T addCredentials(T request) {
+        AuthenticationWrapper wrapper = new AuthenticationWrapper();
+        testKit.registerInOutService("AuthenticationWrapper", wrapper);
+        QName serviceName = new QName(ObjectFactory.NAME_SPACE, "AuthenticationWrapper");
+        Invoker service = new Invoker(testKit.getServiceDomain(), serviceName);
+        return (T) service.operation("").sendInOut(request).getContent();
+    }
+
+    private class AuthenticationWrapper implements ExchangeHandler {
+
+       @Override
+        public void handleMessage(Exchange exchange) throws HandlerException {
+            Set<Credential> credentials = new HashSet<Credential>();
+            credentials.add(new NameCredential(USERNAME));
+            securityMgr.addCredentials(exchange, credentials);
+            exchange.send(exchange.getMessage().copy());
+        }
+
+        @Override
+        public void handleFault(Exchange exchange) {
+        }
+    }
+----
+
+== TIP Invoke a remote service
+When a service is published with an SCA binding, we can invoke it remotely with a Remote Invoker.
+
+[source,java]
+----
+    public static void main(final String[] ignored) throws Exception {
+        // Create a new remote client invoker
+        RemoteInvoker invoker = new HttpInvoker("http://localhost:8080/switchyard-remote");
+
+        // Create request payload
+        ParamIn input = ...;
+
+        // Create the request message
+        RemoteMessage message = new RemoteMessage();
+        message.setService(new QName(
+            "urn:com.example:1.0","MyService"))
+            .setOperation("myOperation").setContent(input);
+
+        // Invoke the service
+        RemoteMessage reply = invoker.invoke(message);
+        if (reply.isFault()) {
+            ...
+        } else {
+            ParamOut output = (ParamOut)reply.getContent();
+            ...
+        }
+    }
+----
+
+== Testing a deployed service with HTTPMixin
+Whenever we want to test a deployed service, we can use HTTPMixin to create all the required wishtles.
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(
+        scanners = TransformSwitchYardScanner.class,
+        mixins = {CDIMixIn.class, HTTPMixIn.class})
+public class WebServiceTest {
+
+    private HTTPMixIn httpMixIn;
+
+    @Test
+    public void invokeWebService() throws Exception {
+        // Use the HttpMixIn to invoke the SOAP binding endpoint with a SOAP input (from the test classpath)
+        // and compare the SOAP response to a SOAP response resource (from the test classpath)...
+        httpMixIn.setContentType("application/soap+xml");
+        httpMixIn.postResourceAndTestXML("http://localhost:18001/service-context/ServiceName", "/xml/soap-request.xml", "/xml/soap-response.xml");
+    }
+}
+----
+
+Or from a main class:
+
+[source,java]
+----
+    /**
+     * Only execution point for this application.
+     * @param ignored not used.
+     * @throws Exception if something goes wrong.
+     */
+    public static void main(final String[] ignored) throws Exception {
+
+        HTTPMixIn soapMixIn = new HTTPMixIn();
+        soapMixIn.initialize();
+
+        try {
+            String result = soapMixIn.postFile(URL, XML);
+            System.out.println("SOAP Reply:\n" + result);
+        } finally {
+            soapMixIn.uninitialize();
+        }
+    }
+----
+
+== Creating an Embedded WebService to test a component
+In some situations we only want to test a component, so we decide to expose it dynamically as a WebService an invoke it.
+
+[source,java]
+----
+import javax.xml.ws.Endpoint;
+...
+
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(
+        config = SwitchYardTestCaseConfig.SWITCHYARD_XML,
+        scanners = {TransformSwitchYardScanner.class},
+        mixins = {HTTPMixIn.class})
+public class CamelSOAPProxyTest {
+
+    private static final String WEB_SERVICE = "http://localhost:8081/MyService";
+
+    private HTTPMixIn _http;
+    private Endpoint _endpoint;
+
+    @BeforeDeploy
+    public void setProperties() {
+        System.setProperty("org.switchyard.component.http.standalone.port", "8081");
+    }
+
+    @Before
+    public void startWebService() throws Exception {
+        _endpoint = Endpoint.publish(WEB_SERVICE, new ReverseService());
+    }
+
+    @After
+    public void stopWebService() throws Exception {
+        _endpoint.stop();
+    }
+
+    @Test
+    public void testWebService() throws Exception {
+        _http.postResourceAndTestXML(WEB_SERVICE, "/xml/soap-request.xml", "/xml/soap-response.xml");
+    }
+}
+----
+
+== Testing a deployed service with HornetQMixIn
+Sometimes we need to test an application that has a JMS binding and we want to test with the binding itself. For these use cases, HornetQMixIn comes to the rescue.
+
+HornetQMixIn gets its configuration from 2 files that has to be on the classpath for the test:
+
+*hornetq-configuration.xml*: Contains the configuration for the HornetQ server.
+
+[source,xml]
+----
+ <configuration xmlns="urn:hornetq">
+
+        <paging-directory>target/data/paging</paging-directory>
+        <bindings-directory>target/data/bindings</bindings-directory>
+        <persistence-enabled>false</persistence-enabled>
+        <journal-directory>target/data/journal</journal-directory>
+        <journal-min-files>10</journal-min-files>
+        <large-messages-directory>target/data/large-messages</large-messages-directory>
+        <security-enabled>false</security-enabled>
+
+        <connectors>
+                <connector name="invm-connector">
+                        <factory-class>org.hornetq.core.remoting.impl.invm.InVMConnectorFactory</factory-class>
+                </connector>
+                <connector name="netty-connector">
+                 <factory-class>org.hornetq.core.remoting.impl.netty.NettyConnectorFactory</factory-class>
+                 <param key="port" value="5545"/>
+      </connector>
+        </connectors>
+
+        <acceptors>
+                <acceptor name="invm-acceptor">
+                        <factory-class>org.hornetq.core.remoting.impl.invm.InVMAcceptorFactory</factory-class>
+                </acceptor>
+                <acceptor name="netty-acceptor">
+                        <factory-class>org.hornetq.core.remoting.impl.netty.NettyAcceptorFactory</factory-class>
+                        <param key="port" value="5545"/>
+                </acceptor>
+        </acceptors>
+
+</configuration>
+----
+
+*hornetq-jms.xml*: Contains the definition of the connection factories, queues, topics,...
+
+[source,xml]
+----
+<configuration xmlns="urn:hornetq">
+
+   <connection-factory name="ConnectionFactory">
+      <connectors>
+        <connector-ref connector-name="invm-connector"/>
+      </connectors>
+
+      <entries>
+         <entry name="ConnectionFactory"/>
+      </entries>
+   </connection-factory>
+
+   <queue name="TestRequestQueue">
+      <entry name="TestRequestQueue"/>
+   </queue>
+   <queue name="TestReplyQueue">
+      <entry name="TestReplyQueue"/>
+   </queue>
+
+</configuration>
+----
+
+To use it in test, you only need to get a reference to the MixIn and use the appropiate mixin methods:
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(
+        config = SwitchYardTestCaseConfig.SWITCHYARD_XML,
+        mixins = {CDIMixIn.class, HornetQMixIn.class}
+)
+
+public class JmsBindingTest {
+
+    private HornetQMixIn _hqMixIn;
+
+
+    @Test
+    public void testHelloService() throws Exception {
+        Session session = _hqMixIn.getJMSSession();
+        MessageProducer producer = session.createProducer(HornetQMixIn.getJMSQueue(REQUEST_NAME));
+        Message message = _hqMixIn.createJMSMessage(createPayload(NAME));
+        producer.send(message);
+
+        MessageConsumer consumer = session.createConsumer(HornetQMixIn.getJMSQueue(REPLY_NAME));
+        message = consumer.receive(3000);
+        String reply = _hqMixIn.readStringFromJMSMessage(message);
+        SwitchYardTestKit.compareXMLToString(reply, createExpectedReply(NAME));
+    }
+
+    @Before
+    public void getHornetQMixIn() {
+        _hqMixIn = _testKit.getMixIn(HornetQMixIn.class);
+    }
+----
+
+Or testing from a standalone client:
+
+[source,java]
+----
+   public static void main(final String[] args) throws Exception {
+
+        HornetQMixIn hqMixIn = new HornetQMixIn(false)
+                                    .setUser(USER)
+                                    .setPassword(PASSWD);
+        hqMixIn.initialize();
+
+        try {
+            Session session = hqMixIn.getJMSSession();
+            final MessageProducer producer = session.createProducer(HornetQMixIn.getJMSQueue(REQUEST_NAME));
+            producer.send(hqMixIn.createJMSMessage("<....>");
+            System.out.println("Message sent. Waiting for reply ...");
+
+            final MessageConsumer consumer = session.createConsumer(HornetQMixIn.getJMSQueue(REPLY_NAME));
+            Message message = consumer.receive(3000);
+            String reply = hqMixIn.readStringFromJMSMessage(message);
+            System.out.println("REPLY: \n" + reply);
+        } finally {
+            hqMixIn.uninitialize();
+        }
+
+    }
+----
+
+== Testing a deployed service with TransactionMixIn
+To test your required services with a transaction, we can use TransactionMixIn. TransactionMixIn with combination of CDIMixIn will inject a UserTransaction object when required. If you need explicit access, you can @Inject the UserTransaction object, but if not, it will be injected in SwitchYard's functionalities for you under the covers. This MixIn introduces NamingMixIn for you, as it is a required dependency.
+
+[source,java]
+----
+@SwitchYardTestCaseConfig(
+    config = SwitchYardTestCaseConfig.SWITCHYARD_XML,
+    mixins = {CDIMixIn.class, TransactionMixIn.class}
+)
+public YourClass{
+    ....
+}
+----
+
+And it will bind following objects into the JNDI tree:
+
+* *TransactionManager*: "java:jboss/TransactionManager"
+* *UserTransaction*: "java:jboss/UserTransaction"
+* *TransactionSynchronizationRegistry*: "java:jboss/TransactionSynchronizationRegistry"
+
+If you need access to the provided objects, you can use the MixIn to get a reference:
+
+[source,java]
+----
+    private TransactionMixIn transaction;
+    ....
+    transaction.getUserTransaction();
+    transaction.getTransactionManager();
+    transaction.getSynchronizationRegistry();
+----
+
+This mixin will leave transactional logs in "target/tx-store".
+
+This mixin uses Arjuna Transactions Provider (com.arjuna.ats.jta).
+
+== Testing JPA functionality
+
+TODO:
+See: ./quickstarts/camel-jpa-binding/src/test/java/org/switchyard/quickstarts/camel/jpa/binding/CamelJpaBindingTest.java
+
+== Testing in a container with Arquillian
+
+TODO:
+
+== TIP Running REST, SOAP or HTTP endpoint in different ports
+
+For Rest and Http bindings set the following properties in the JUnit test:
+
+[source, java]
+----
+    @BeforeDeploy
+    public void setProperties() {
+        System.setProperty("org.switchyard.component.http.standalone.port", "8081");
+        System.setProperty("org.switchyard.component.resteasy.standalone.port", "8081"); 
+    }
+----
+
+For SOAP bindings, set socketAddr in the switchyard.xml
+
+[source,xml]
+----
+        <service name="OrderService" promote="OrderService">
+            <interface.wsdl interface="wsdl/OrderService.wsdl#wsdl.porttype(OrderService)"/>
+            <binding.soap xmlns="urn:switchyard-component-soap:config:1.0">
+                <wsdl>wsdl/OrderService.wsdl</wsdl>
+                <socketAddr>:9091</socketAddr>
+                <contextPath>quickstart-bean</contextPath>
+            </binding.soap>
+        </service>
+----
+
+NOTE: You can externilize this properties, and define them in maven to avoid collisions.
+
+WARNING: If you have a running SwitchYard server, and want to do JUnit test for some bindings, some ports may collide. Use this port redefinition to avoid it.
+
+== TIP Testing with a different (reduced) Switchyard configuration file
+Use this annotation on the test class:
+
+[source,java]
+----
+@SwitchYardTestCaseConfig(config = "switchyard-XXXXX.xml", mixins = {.....})
+----
+
+And create your reduced switchyard-XXXX.xml within the test/resources folder at the same package level as your test class.
+
+== TIP Selectively enabling activators for a Test
+The test framework defaults to a mode where the entire application descriptor is processed during a test run. This means all gateway bindings and service implementations are activated during each test. There are times when this may not be appropriate, so we allow activators to be selectively enabled or disabled based on your test configuration.
+In this example, SOAP bindings are excluded from all tests. (This means that SOAP gateway bindings will not be activated when the test framework loads the application.)
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(config = "testconfigs/switchyard-01.xml" exclude="soap")
+public class NoSOAPTest  {
+   ...
+}
+----
+
+This example includes only CDI bean services as defined in the application descriptor:
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(config = "testconfigs/switchyard-02.xml" include="bean")
+public class BeanServicesOnlyTest  {
+...
+}
+----
+
+== TIP Testing a camel binding
+In an scenario where you are exposing services with a camel binding, you can test it getting the CamelContext and then creating a ProducerTemplate.
+
+[source,java]
+----
+@RunWith(SwitchYardRunner.class)
+@SwitchYardTestCaseConfig(
+        config = SwitchYardTestCaseConfig.SWITCHYARD_XML,
+        mixins = { CDIMixIn.class })
+public class ExampleTest {
+
+    private SwitchYardTestKit testKit;
+
+    @Test
+    public void testIntake() throws Exception {
+        ServiceDomain domain = testKit.getServiceDomain();
+        CamelContext ctx = (CamelContext)domain.getProperty("CamelContextProperty");
+        ProducerTemplate producer = ctx.createProducerTemplate();
+        producer.sendBody("direct://HelloService", "Message content");
+    }
+}
+----
+
+You can test a service like the one defined below that has a camel binding.
+
+[source,java]
+----
+<sca:service name="Hello/HelloService" promote="Hello/HelloService">
+   <sca:interface.java interface="org.jboss.example.ExampleService"/>
+   <camel_1:binding.uri name="camel1" configURI="direct://HelloService"/>
+</sca:service>
+----
+
+== Preparing procedure for test
+Sometimes we need to add some procedures before test is performed. JUnit @Before operation is invoked right after the application is deployed, however, it can't be used if you expect something before deploy. We have @BeforeDeploy annotation for this purpose.
+
+== TIP Testing a Web Service with Policies defined in it or a SOAP CXF interceptor
+If you need to do unit testing for a service with policies defined in it, or a custom SOAP cxf interceptor, you will not be able to do it at the moment unless you run the tests against a real "running" container.
 
 == SwitchYard - Advanced topics
- * Creating your own camel endpoint/component (Extensions)
  * Distributed transactions in FSW - what is possible and what is not possible (e.g. can a splitter/aggregator ever be transactional)
 
  TODO: Create this
 
 == RTGov
+What is Runtime monitoring 
+
+* Extract the information (events)
+* Process the information (analyze)
+* Display information (visualize)
+
+What is policy enforcement
+
+* Sync policy
+* Async policy
+
+What is SLA
+
+* sla
+* situations
 
 For call trace
 * ActivityReporter: reports activity to the BAM server. Can be injected with @Inject in a Bean Component. (How can be injected in Camel or any other???) Has methods logError, logWarn, logInfo,...
@@ -2609,6 +3706,11 @@ For policies:
 
 InformationProcessor that is based on a set of expressions used to extract relevant data from the supplied information.
 
+
+image::overlord/rtgov/rtgov_architecture.jpg[RTGov Architecture]
+
+image::overlord/rtgov/policy_Async_Enforcement.jpg[Policy Async Enforcement]
+
  TODO: Create this
 
 
@@ -2618,6 +3720,8 @@ InformationProcessor that is based on a set of expressions used to extract relev
  * life-cycle management
  * Deployment
  * Integrating the build/test/deployment process into a maven based build engine
+
+image::overlord/dtgov/soa_governance.png[SOA Governance]
 
  TODO: Create this
 
@@ -2642,6 +3746,127 @@ InformationProcessor that is based on a set of expressions used to extract relev
  * Troubleshooting
 
  TODO: Create this
+
+== Architecture - Topologies
+* Simple topology (All in one)
+* Environmental topology
+* Environmental topology with unified governance
+
+== Simple topology (All in one)
+This topology deploys all the functions in the same boxes, a set of 2 or more boxes (to have clustering) and it is not recommended as the production approach, but rather for PoC and demoing.
+
+image::fsw/architecture/FSW_deployment_allinone.jpg[FSW Architecture]
+
+This topology is a simple topology and will consist of:
+
+* A cluster of servers for SwitchYard, rtGov + dtGov.
+* We will typically front this cluster with a Load Balancer. For this we usually have two options, a Hardware load balancer (typically this is clustered) or an httpd+mod_cluster (usually in an HA manner, A/A or A/P)
+* We also have a cluster of databases (amongst those supported by the product) in a clustered way, for HA.
+
+Httpd servers and database servers ca be co-located on the same boxes as the FSW servers, so reducing the required amount of boxes needed for this.
+
+We need to take into account for this topology additional constraints such as:
+
+* Having a separate messaging topology included in the solution and connected from SwitchYard clusters via JMS bridge or ActiveMQ/HornetQ jca adapter.
+* Having shared storage for file based type of services
+
+== Environmental topology
+This topology deploys every function into every existing environment in a clustered manner per functionality.
+
+image::fsw/architecture/FSW_deployment_environmental.jpg[FSW Architecture]
+
+In every environment we will have:
+
+* A large cluster of servers for SwitchYard (this servers include rtGov client) that will do the service execution.
+* We will typically front this cluster with a Load Balancer. For this we usually have two options, a Hardware load balancer (typically this is clustered) or an httpd+mod_cluster (usually in an HA manner, A/A or A/P)
+* A cluster of RTGov servers (for HA) that will be doing runtime governance analisys. This cluster will be A/P and accessed through a VIP.
+* We also have a cluster of databases (amongst those supported by the product) in a clustered way, for HA.
+* A cluster for Design Time Governance that will orchestrate the state of services in that environment. Promotion of artifacts amongst environments will be done manually, and thus the solely purpose of this DTGov cluster in the environment is to provide with the S-RAMP storage capabilities for artifacts and metadata.
+
+Usually these environments (dev, qa, test, stage, preprod, prod,...) will not be the same in terms of size and capabilities, so Development environment tends to be much smaller in terms of number of boxes and capabilities of those boxes (cores/cpus, ram,...).
+
+We need to take into account for this topology additional constraints such as:
+
+* Having a separate messaging topology included in the solution and connected from SwitchYard clusters via JMS bridge or ActiveMQ/HornetQ jca adapter.
+* Having shared storage for file based type of services
+
+== Environmental topology with unified governance
+This topology deploys clusters of main functions per existing environment and shares a common layer (cluster/environment) for design time governance (DTGov) responsibilities.
+
+image::fsw/architecture/FSW_deployment.jpg[FSW Architecture]
+
+In every environment we will have:
+
+* A large cluster of servers for SwitchYard (this servers include rtGov client) that will do the service execution.
+* We will typically front this cluster with a Load Balancer. For this we usually have two options, a Hardware load balancer (typically this is clustered) or an httpd+mod_cluster (usually in an HA manner, A/A or A/P)
+* A cluster of RTGov servers (for HA) that will be doing runtime governance analisys. This cluster will be A/P and accessed through a VIP.
+* We also have a cluster of databases (amongst those supported by the product) in a clustered way, for HA.
+ 
+Also, we will lie down a shared environment for Design Time Governance that will orchestrate the state of services between the different environments. This environment is one single environment and can be co-located in any of the other environments, and then making advantage of the load balancing and database capabilities already available in that environment.
+ 
+Usually this environments will not be the same in terms of size and capabilities, so Development environment tends to be much smaller in terms of number of boxes and capabilities of those boxes (cores/cpus, ram,...)
+ 
+We need to take into account for this topology additional constraints such as:
+
+* Having a separate messaging topology included in the solution and connected from SwitchYard clusters via JMS bridge or ActiveMQ/HornetQ jca adapter.
+* Having shared storage for file based type of services
+
+== Continuous Delivery with FSW
+FSW is a great product, and incorporates in the suite a Governance solution for services lifecycle. We usually don't have a clear picture of how to map this product to user requirements, and how to integrate into the customer environments or way of doing things.
+What I describe here are some examples of use cases that can be done with DTGov to enable Continuous Delivery of services for a customer. Of course, these are just examples, and every customer/organization will have their specific concerns or tools or way of working, so this process *ALWAYS* needs to be tailored for the customer. But you can use these examples to get into the conversation with the customer.
+
+== Tag Final version after all testing phases
+This example here assumes the customer will go through all their testing phases using a "Snapshot" or not "final" version of the artifact, and will tag it as Final just when the artifact is ready to be promoted to the production environment. If testing at some point fails, version will not be bumped.
+
+image::fsw/architecture/DTGov_CD.png[CD with FSW]
+
+. Developer commit/pushes their development to the VCS (Version Control System) they are using (Git, SVN,...)
+.. To note that developer will use artifact repository to fetch dependencies. For this example, it will use Nexus for released versions and dtGov for snapshots. (An option can be to have nexus proxy to dtGov for the Snapshots)
+. Continuous Integration server fetches latest code from VCS and trigger the execution of the build job that will build and do unit tests on the code. If everything works fine, and all tests pass, it will deploy the generated artifact to DTGov via maven deployment API.
+. DTGov will start executing the configured workflow for this kind of service.
+.. DTGov can have multiple workflows for different kind of services.
+. DTGov will deploy/install/copy the artifact to the target environment with the configured deployment process (Using maven, JBoss cli, file copy or JON)
+. Workflow will be in waiting state for the configured used to functional validate the development in the corresponding environment (dev in this example).
+. Once the user has validated the development doing the pertinent functional/integration/performance/xxx tests it will approve or reject the task in "DTGov task inbox" which will trigger a finish of the workflow (in case of reject) or continue the workflow (in cse of approve).
+.. Bundled workflow (OOTB) sends an email notification with the result of the approval/rejection action taken.
+. DTGov workflow continues (in case of approval) and it will deploy to next configured environment, and will create a task for the corresponding user.
+. Corresponding user will validate the development, as before.
+. User will approve or reject, as before. And so forth with every environment but the last one.
+. This example assumes that no automatic deployment can be made to production systems, so part of the workflow, the corresponding to "PROD" environment, will trigger a job in the CI server to release the software (development) and do whatever is appropriate for the task.
+. This CI release job, will tag the version in the VCS used.
+. It will build the tagged version and it will deploy it to the Artifact repository to the released group for the corresponding project. This way, artifact is accessible.
+. Ops guy (team) will get the artifact from the artifact repository
+. And it will install it to the "PROD" environment with their "Pass to Production" procedures.
+
+== Tag Final version before all testing phases
+ 
+This example here assumes the customer will go through all their testing phases using a tagged version of the artifact. If testing at some point fails, version will be bumped, and a version that will never get into production will have been produced.
+
+image::fsw/architecture/DTGov_CD-TagFirst.png[CD with FSW]
+
+. Developer commit/pushes their development to the VCS (Version Control System) they are using (Git, SVN,...)
+.. To note that developer will use artifact repository to fetch dependencies. For this example, it will use Nexus for released versions and dtGov for snapshots. (An option can be to have nexus proxy to dtGov for the Snapshots)
+. Continuous Integration server fetches latest code from VCS and trigger the execution of the build job that will build and do unit tests on the code.
+. If everything works fine, the release will be tagged.
+. CI server will deploy the generated artifact to DTGov via maven deployment API. DTGov will start executing the configured workflow for this kind of service.
+.. DTGov can have multiple workflows for different kind of services.
+. DTGov will deploy/install/copy the artifact to the target environment with the configured deployment process (Using maven, JBoss cli, file copy or JON)
+. Workflow will be in waiting state for the configured used to functional validate the development in the corresponding environment (dev in this example).
+. Once the user has validated the development doing the pertinent functional/integration/performance/xxx tests it will approve or reject the task in "DTGov task inbox" which will trigger a finish of the workflow (in case of reject) or continue the workflow (in cse of approve).
+.. Bundled workflow (OOTB) sends an email notification with the result of the approval/rejection action taken.
+. DTGov workflow continues (in case of approval) and it will deploy to next configured environment, and will create a task for the corresponding user.
+. Corresponding user will validate the development, as before.
+. User will approve or reject, as before. And so forth with every environment but the last one.
+. This example assumes that no automatic deployment can be made to production systems, so part of the workflow, the corresponding to "PROD" environment, will deploy install the "verified" artifact into the artifact repository (nexus).
+. Ops guy (team) will get the artifact from the artifact repository
+. And it will install it to the "PROD" environment with their "Pass to Production" procedures.
+
+== DT With FSW CAVEATS
+* As I said, there is no golden rule on how to do CI/CD with DTGov. Every SCM (Software Configuration Management) tools has their specifics, and these here presented are shown to be valid with Jenkins as CI server, Git as VCS and Nexus as artifact repository.
+* Deployment process can be more complicated than what is here expressed, as SwitchYard doesn't allow yet for domain mode (as of FSW 6.0.0), so installation of the artifact to the environment can be tricky. If using JON, things seem simpler.
+* Configuration of development station has to be taken into account and configured accordingly to their artifact repository and to the way of grouping their dependencies.
+* Even DTGov can be used as maven server for artifact dependencies, we assume for this workflow that nexus will be the single source of "Final" artifacts, as this simplifies maven "settings.xml" configuration for developers. Nexus can proxy DTGov as a named repository.
+* This is an example based on the OOTB workflow with the difference that promotion to Prod environment is not automatic. (As I have yet to see a company that does allow for automatic deployment to prod systems, so I feel this is more realistic).
 
 == Thank you
 
