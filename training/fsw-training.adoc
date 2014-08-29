@@ -3710,7 +3710,7 @@ If you need to do unit testing for a service with policies defined in it, or a c
 == RTGov
 What is Runtime monitoring 
 
-* Extract the information (events)
+* Extract the information (events) (https://mojo.redhat.com/docs/DOC-982732)
 * Process the information (analyze)
 * Display information (visualize)
 
@@ -3742,7 +3742,130 @@ image::overlord/rtgov/policy_Async_Enforcement.jpg[Policy Async Enforcement]
 
 
 == DTGov
+The DTGov project layers Design Time Governance functionality on top of an S-RAMP repository. These two projects work together to provide the following:
 
+* Store and Govern artifacts
+* Custom Governance Workflows
+*Integrated Governance Human Task Management
+
+== What is S-RAMP
+S-RAMP stands for *SOA Repository Artifact Model and Protocol*. 
+
+S-RAMP is a new specification worked on by the OASIS Technical Committee.
+
+[quote, OASIS Charter, https://www.oasis-open.org/committees/s-ramp/charter.php]
+____
+The SOA Repository Artifact Model and Protocol (S-RAMP) TC defines a common data model for SOA repositories as well as an interaction protocol to facilitate the use of common tooling and sharing of data. The TC will define an ATOM binding which documents the syntax for interaction with a compliant repository for create, read, update, delete and query operations.	 
+____
+
+== S-RAMP
+An S-RAMP repository primarily stores artifacts. An artifact is comprised of the following meta-data:
+
+* Core properties
+* Custom properties
+* Classifiers (Ontologies)
+* Relationships
+
+== Core properties
+All artifacts in S-RAMP contain a set of core properties such as name, description, creation date, etc. 
+
+Many of these properties are automatically set by the server when the artifact is added and/or updated. Others, such as description, can be set by clients.
+
+Every artifact has an *Artifact Model* and an *Artifact Type*.
+
+NOTE: These two properties determine what kind of artifact it is.
+
+Some artifact types contain additional core properties. 
+
+ For example, the Document artifact type includes additional core properties of contentType and contentSize, while the XsdDocument artifact type includes the targetNamespace property.
+
+== Custom properties
+An artifact may have additional properties set on it by clients. 
+
+These custom properties are simply arbitrary *name/value pairs*.
+
+WARNING: The only restriction is that a custom property may NOT have the same name as a core property.
+
+== Ontologies
+An ontology is simply a hierarchy of tags (defined as a subset of the OWL Lite format).
+
+This allows the repository to be configured with a pre-defined set of hierarchical tags (classifiers) that can be associated with an artifact.
+
+== Classifiers
+Classifiers are a lot like keywords or tags except that they are hierarchical.
+
+Every artifact has a collection of classifiers configured by the client, where each classifier must be a node in an ontology previously uploaded to the repository.
+
+== Relationships
+An S-RAMP relationship is a uni-directional link between a source artifact and a target artifact.
+
+Artifacts can have arbitrary, client-defined relationships.
+
+Every relationship has a name and a target artifact.
+
+
+ For example, a client might define a relationship named "documentedBy" between a wsdl artifact and a text or PDF artifact, indicating that the latter provides documentation for the former.
+
+== S-RAMP UI
+Available at: http://<server>:8080/s-ramp-ui
+
+image::overlord/dtgov/sramp/srampui.png[S-Ramp UI]
+
+== S-RAMP shell
+Available at: ${DTGOV_HOME}/bin/s-ramp.sh
+
+image::overlord/dtgov/sramp/sramp_shell.png[S-Ramp shell]
+
+== S-RAMP users and roles
+There are several roles that the user must have in order to interact with the S-RAMP repository. These roles are as follows:
+
+* *overlorduser*: users must have this role in order to access the S-RAMP user interface (browser)
+* *admin.sramp*: users must have this role in order to access the S-RAMP repository (both read and write)
+
+== S-RAMP Data models (from the standard)
+http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_s_ramp_data_models.html
+
+== S-RAMP Query language (from the standard)
+http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_query_language.html
+
+== S-RAMP Rest API (from the standard)
+http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_s_ramp_rest_api.html
+
+== Overlord S-RAMP implementation
+http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_implementation.html
+
+http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_rest_api_endpoints.html
+
+http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_the_s_ramp_browser_ui.html
+
+http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_command_line.html
+
+http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_maven_integration.html
+
+http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_server_configuration.html
+
+== How DTGov Works
+http://docs.jboss.org/overlord/dtgov/1.3.0.Final/html/_introduction_to_dtgov.html
+
+* Workflows are created from JBoss jBPM (BPMN2) process definitions.
+* A version of jBPM is embedded in the deployed dtgov.war. This version of jBPM is configured to use the S-RAMP repository as the source for workflow definitions.
+* To use a workflow with DTGov, the jBPM workflow files must be bundled into a Jar file named "dtgov-workflows.jar" and uploaded to the DTGov S-RAMP repository. There are several methods than can be used to deploy the workflow jar file to S-RAMP. We recommend that you use maven.
+* The embedded jBPM pulls the dtgov-workflow.jar out of S-RAMP at runtime and uses the workflow definitions found therein.
+* In this context, "runtime" refers to whenever a new workflow instance is created (typically triggered by an artifact being added or changed in the s-ramp repository).
+* Any human tasks that are used in any DTGov workflow will appear in the Tasks UI included in the DTGov UI (http://localhost:8080/dtgov-ui)
+* A workflow deployment only shows up in the dtgov-ui/#deployments page once a lifecycle management jBPM process is kicked off for it.
+
+== Define targets
+
+== Define ontologies
+
+== Define workflows
+
+== Deploy artifacts
+
+== Govern
+
+== DTGov
  * App building
  * life-cycle management
  * Deployment
