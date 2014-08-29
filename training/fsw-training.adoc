@@ -3838,6 +3838,31 @@ We need to take into account for this topology additional constraints such as:
 * Having a separate messaging topology included in the solution and connected from SwitchYard clusters via JMS bridge or ActiveMQ/HornetQ jca adapter.
 * Having shared storage for file based type of services
 
+== Adding ActiveMQ
+Usually, when adding to the architecture a messaging broker, you would like to add it in a HA way, and running in separate processes.
+
+There are multiple ways of adding a messaging broker (master/slave, network of brokers,...) but all of them, if using ActiveMQ, requires that the communication between FSW (SwitchYard) and the messaging brokers is done with the ActiveMQ JCA resource adapter.
+
+image::fsw/architecture/FSW_ActiveMQ.png[FSW + ActiveMQ]
+
+== Complete FSW stack
+This topology deploys clusters of main functions per existing environment and shares a common layer (cluster/environment) for design time governance (DTGov) responsibilities.
+
+image::fsw/architecture/FSW_deployment_environmental_messaging_jon.jpg[Complete architecture]
+
+In every environment we will have:
+
+* A large cluster of servers for SwitchYard (this servers include rtGov client) that will do the service execution.
+* We will typically front this cluster with a Load Balancer. For this we usually have two options, a Hardware load balancer (typically this is clustered) or an httpd+mod_cluster (usually in an HA manner, A/A or A/P)
+* A cluster of RTGov servers (for HA) that will be doing runtime governance analisys. This cluster will be A/P and accessed through a VIP.
+* We also have a cluster of databases (amongst those supported by the product) in a clustered way, for HA.
+* A cluster of messaging brokers (With their requirements in terms of shared storage/database for HA).
+* A cluster of management and monitoring servers with JBoss OperationNetwork (JON) 
+ 
+Also, we will lie down a shared environment for Design Time Governance that will orchestrate the state of services between the different environments. This environment is one single environment and can be co-located in any of the other environments, and then making advantage of the load balancing and database capabilities already available in that environment.
+ 
+Usually this environments will not be the same in terms of size and capabilities, so Development environment tends to be much smaller in terms of number of boxes and capabilities of those boxes (cores/cpus, ram,...)
+
 == Continuous Delivery with FSW
 FSW is a great product, and incorporates in the suite a Governance solution for services lifecycle. We usually don't have a clear picture of how to map this product to user requirements, and how to integrate into the customer environments or way of doing things.
 What I describe here are some examples of use cases that can be done with DTGov to enable Continuous Delivery of services for a customer. Of course, these are just examples, and every customer/organization will have their specific concerns or tools or way of working, so this process *ALWAYS* needs to be tailored for the customer. But you can use these examples to get into the conversation with the customer.
