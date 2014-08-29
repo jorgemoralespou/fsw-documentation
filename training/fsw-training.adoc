@@ -1333,9 +1333,36 @@ NOTE: Additional behaviour relative to the correspoding transaltions will exist 
 
 TODO: Define this.
 
-TODO: How and when message composition happens
-TODO: How and when validation, transformation, ... happens 
+== Core concepts - ExchangeHandler Chains
+Communications between components and bindings to/from components is done by a LocalExchangeBus.
 
+NOTE: This is the wire
+
+There is a chain of ExchangeHandlers acting as interceptors for the request and response pipelines of the wire. The default chain has the following:
+
+* *RequestChain*
+** *addressing*: AddressingHandler resolves service instances based on a service reference.
+** *transaction-pre-invoke*: TransactionHandler interprets transactional policy specified on an exchange and handles transactional requirements. Suspends current transaction and creates a new one, creates a new one, join an ongoing transaction,...
+** *security-process*:  SecurityHandler interprets security policy specified on an exchange and handles security requirements. Cretes the SecurityContext and SecurityProvider and attaches to the thread.
+** *generic-policy*: PolicyHandler
+** *validation-before-transform*: ValidateHandler executes the *org.switchyard.validate.Validator* defined for the Exchange`s content type.
+** *transformation*: TransformHandler applies all the defined transformations (*org.switchyard.transform.TRansformer*) for the message for consumer.inputType to provider.inputType and set the Exchange's new content type.
+** *validation-after-transform*: ValidateHandler executes the *org.switchyard.validate.Validator* defined for the new Exchange`s content type.
+** *provider*: ProviderHandler dispatches the message to the provider (component).
+** *security-cleanup*: SecurityHandler cleanup of context and thread info.
+** *transaction-post-invoke*: TransactionHandler commits or rollback, or resume suspended transaction,...
+
+image::switchyard/core/HandlerChain_IN_ONLY.png[IN_ONLY Handler Chain]
+
+NOTE: Only IN_OUT Exchanges will execute the ReplyChain, that's why there are 2 Handlers after the execution of the provider, to cleanup/finish tasks.
+        
+* *ReplyChain*
+** *validation-before-transform*: ValidateHandler executes the *org.switchyard.validate.Validator* defined for the Exchange`s content type.
+** *transformation*: TransformHandler applies all the defined transformations (*org.switchyard.transform.TRansformer*) for the message for provider.outputType to consumer.outputType and set the Exchange's new content type.
+** *validation-after-transform*: ValidateHandler executes the *org.switchyard.validate.Validator* defined for the new Exchange`s content type.
+** *HandlerChain.CONSUMER_HANDLER*: BaseHandler 
+
+image::switchyard/core/HandlerChain_IN_OUT.png[IN_OUT Handler Chain]
 
 == Binding/Gateways
  ** Http based
