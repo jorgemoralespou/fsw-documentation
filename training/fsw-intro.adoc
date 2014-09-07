@@ -1,0 +1,103 @@
+= FSW
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:description: FSW training
+:revdate: 2014-07-17
+:revnumber: 0.1
+:icons: font
+:imagesdir: ./images
+:figure-caption!:
+:deckjs_theme: beamer
+// web-2.0
+//:deckjs_transition: horizontal-slide
+//:pygments:
+//:pygments_style: native
+:scrollable:
+// :linkcss: ./css/redhat.css
+//:count_nested:
+
+== FSW from the Red Hat website
+
+[quote, Red Hat website, http://www.redhat.com/es/technologies/jboss-middleware/fuse-service-works]
+____
+Red Hat® JBoss® Fuse Service Works is a platform that creates reusable, changeable, and flexible business services that hide the complexity of connecting to different applications in your enterprise. It sets the stage for faster and easier cloud apps, mobile apps, and business process development projects.
+
+JBoss Fuse Service Works combines technical innovations from leading open source projects with the experience and support you expect from a world-class software provider.
+
+image::fsw/FSW_benefits.png[FSW benefits]
+____
+
+== FSW from the JBoss.org
+
+[quote, JBoss.org, http://www.jboss.org/products/fsw/overview/]
+____
+An open source service design, development and integration platform that speeds up cloud integration.
+
+JBoss Fuse Service Works is Red Hat’s middleware solution for application integration, messaging, SOA, and service governance requirements. It combines the core ESB technology from JBoss Fuse and technical innovations from popular open source communities like SwitchYard and Overlord.
+____
+
+== From the official documentation
+
+[quote, Red Hat product documentation, https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse_Service_Works/6/html/User_Guide/chap-Preface.html]
+____
+Red Hat JBoss Fuse Service Works is a platform for developing enterprise application integration (EAI) and service-oriented architecture (SOA) solutions. It consists of a service component framework, business rules/complex event processing, life-cycle governance, runtime governance and process automation. It is built on the same core as JBoss Fuse with enterprise messaging, Camel and CXF so, therefore, users can use it to design, deploy, integrate and orchestrate business services.
+____
+
+
+== FSW Core Capabilities
+The benefits of using Red Hat JBoss Fuse Service Works include the following:
+
+Enterprise Integration Pattern (EIP) Based Development:: The versatile EIP framework is implemented in routing and transformation processes for faster and more efficient integration solutions.
+High Performance Messaging:: A high performance messaging broker supports messaging patterns such as publish-subscribe, point-to-point and store-forward, and multiple cross language clients.
+Service Development:: The web services framework exposes integration assets as services and calls external services, supporting all major web services standards. It also supports RESTful calls.
+Structured Service Development:: A lightweight service development framework provides full lifecycle support for developing, deploying, and managing service-based applications.
+Automatable Registry with Workflow:: Manage the lifecycle of services from design, development and deployment by defining, exposing and enforcing rules or policies.
+Business Transaction Monitoring:: Capture service activity information, define and collect metrics, and define alerts and SLAs.
+Report a bug:: (Just kidding)
+
+=== FSW as System Integration
+Integrating your major business systems into a cohesive infrastructure can be a challenge, especially when you have legacy applications. Red Hat JBoss Fuse Service Works has a number of ways enable you to integrate both new and legacy applications. Development is simplified with a transparent, lightweight service framework which uses EIP technology. This allows developers to focus on higher order concepts while still working with familiar technologies such as Apache Camel, BPEL, BPMN or POJOs. To reduce the operational costs of production and maintenance, the platform utilizes automatable, content-aware repository and service activity monitoring. These support the entire service lifecycle and development, QA and production teams with run-time and design-time visibility, monitoring and alerting.
+
+== What is integration
+
+[quote, Wikipedia, http://en.wikipedia.org/wiki/Systems_integration]
+____
+System integration is defined as the process of bringing together the component subsystems into one system and ensuring that the subsystems function together as a system.
+
+The system integrator brings together discrete systems utilizing a variety of techniques such as computer networking, enterprise application integration, business process management or manual programming.
+____
+
+== What is applications integration
+
+[quote, MuleSoft, https://www.mulesoft.com/resources/esb/applications-integration]
+____
+Applications integration (or enterprise application integration) is the sharing of processes and data among different applications in an enterprise. For both small and large organizations alike, it has become a mission-critical priority to connect disparate applications and leverage application collaboration across the enterprise in order to improve overall business efficiency, enhance scalability, and reduce IT costs.
+____
+
+== What is governance
+
+[quote, Wikipedia, http://en.wikipedia.org/wiki/Governance]
+____
+Governance refers to "all processes of governing, whether undertaken by a government, market or network, whether over a family, tribe, formal or informal organization or territory and whether through laws, norms, power or language." It relates to processes and decisions that seek to define actions, grant power and verify performance.
+____
+
+== Training contents
+
+* SwitchYard
+* RTGov
+* DTGov
+
+== FSW Overview - Components
+
+image:fsw/fsw_component_overview.png[FSW component overview]
+
+== FSW Overview - Layers
+
+image:fsw/fsw_layers.png[FSW layers]
+
+== FSW Overview - Architecture 
+
+image:fsw/fsw_architecture.png[FSW architecture]
+
+// vim: set syntax=asciidoc:
+

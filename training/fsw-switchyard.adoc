@@ -1,5 +1,4 @@
-FSW Training
-============
+= FSW SwitchYard
 :author: Jorge Morales 
 :email: <jmorales@redhat.com>
 :description: FSW training
@@ -16,89 +15,6 @@ FSW Training
 :scrollable:
 // :linkcss: ./css/redhat.css
 //:count_nested:
-
-== FSW from the Red Hat website
-
-[quote, Red Hat website, http://www.redhat.com/es/technologies/jboss-middleware/fuse-service-works]
-____
-Red Hat® JBoss® Fuse Service Works is a platform that creates reusable, changeable, and flexible business services that hide the complexity of connecting to different applications in your enterprise. It sets the stage for faster and easier cloud apps, mobile apps, and business process development projects.
-
-JBoss Fuse Service Works combines technical innovations from leading open source projects with the experience and support you expect from a world-class software provider.
-
-image::fsw/FSW_benefits.png[FSW benefits]
-____
-
-== FSW from the JBoss.org
-
-[quote, JBoss.org, http://www.jboss.org/products/fsw/overview/]
-____
-An open source service design, development and integration platform that speeds up cloud integration.
-
-JBoss Fuse Service Works is Red Hat’s middleware solution for application integration, messaging, SOA, and service governance requirements. It combines the core ESB technology from JBoss Fuse and technical innovations from popular open source communities like SwitchYard and Overlord.
-____
-
-== From the official documentation
-
-[quote, Red Hat product documentation, https://access.redhat.com/documentation/en-US/Red_Hat_JBoss_Fuse_Service_Works/6/html/User_Guide/chap-Preface.html]
-____
-Red Hat JBoss Fuse Service Works is a platform for developing enterprise application integration (EAI) and service-oriented architecture (SOA) solutions. It consists of a service component framework, business rules/complex event processing, life-cycle governance, runtime governance and process automation. It is built on the same core as JBoss Fuse with enterprise messaging, Camel and CXF so, therefore, users can use it to design, deploy, integrate and orchestrate business services.
-____
-
-
-== FSW Core Capabilities
-The benefits of using Red Hat JBoss Fuse Service Works include the following:
-
-Enterprise Integration Pattern (EIP) Based Development:: The versatile EIP framework is implemented in routing and transformation processes for faster and more efficient integration solutions.
-High Performance Messaging:: A high performance messaging broker supports messaging patterns such as publish-subscribe, point-to-point and store-forward, and multiple cross language clients.
-Service Development:: The web services framework exposes integration assets as services and calls external services, supporting all major web services standards. It also supports RESTful calls.
-Structured Service Development:: A lightweight service development framework provides full lifecycle support for developing, deploying, and managing service-based applications.
-Automatable Registry with Workflow:: Manage the lifecycle of services from design, development and deployment by defining, exposing and enforcing rules or policies.
-Business Transaction Monitoring:: Capture service activity information, define and collect metrics, and define alerts and SLAs.
-Report a bug:: (Just kidding)
-
-=== FSW as System Integration
-Integrating your major business systems into a cohesive infrastructure can be a challenge, especially when you have legacy applications. Red Hat JBoss Fuse Service Works has a number of ways enable you to integrate both new and legacy applications. Development is simplified with a transparent, lightweight service framework which uses EIP technology. This allows developers to focus on higher order concepts while still working with familiar technologies such as Apache Camel, BPEL, BPMN or POJOs. To reduce the operational costs of production and maintenance, the platform utilizes automatable, content-aware repository and service activity monitoring. These support the entire service lifecycle and development, QA and production teams with run-time and design-time visibility, monitoring and alerting.
-
-== What is integration
-
-[quote, Wikipedia, http://en.wikipedia.org/wiki/Systems_integration]
-____
-System integration is defined as the process of bringing together the component subsystems into one system and ensuring that the subsystems function together as a system.
-
-The system integrator brings together discrete systems utilizing a variety of techniques such as computer networking, enterprise application integration, business process management or manual programming.
-____
-
-== What is applications integration
-
-[quote, MuleSoft, https://www.mulesoft.com/resources/esb/applications-integration]
-____
-Applications integration (or enterprise application integration) is the sharing of processes and data among different applications in an enterprise. For both small and large organizations alike, it has become a mission-critical priority to connect disparate applications and leverage application collaboration across the enterprise in order to improve overall business efficiency, enhance scalability, and reduce IT costs.
-____
-
-== What is governance
-
-[quote, Wikipedia, http://en.wikipedia.org/wiki/Governance]
-____
-Governance refers to "all processes of governing, whether undertaken by a government, market or network, whether over a family, tribe, formal or informal organization or territory and whether through laws, norms, power or language." It relates to processes and decisions that seek to define actions, grant power and verify performance.
-____
-
-== Training contents
-
-* SwitchYard
-* RTGov
-* DTGov
-
-== FSW Overview - Components
-
-image:fsw/fsw_component_overview.png[FSW component overview]
-
-== FSW Overview - Layers
-
-image:fsw/fsw_layers.png[FSW layers]
-
-== FSW Overview - Architecture 
-
-image:fsw/fsw_architecture.png[FSW architecture]
 
 == SwitchYard
 
@@ -2355,15 +2271,27 @@ There is a helper class for validation called: *org.switchyard.validate.BaseVali
 
  TODO: Create this
 
-== SwitchYard - Properties
+== Configuration (Properties)
+SwitchYard supports configuration properties, that can be injected into configuration or into service implementations:
 
- TODO: Create this
+== Switchyard model configuration
+SwitchYard allow you to replace any attribute or element value in switchyard.xml with a property from the runtime environment. The syntax for a replaced token is "${varName}" where "varname" is your property name.
 
-== SwitchYard - Environment Properties
+== PropertyResolvers (Internals)
+The configuration layer in SwitchYard is configured with instances of *PropertyResolver*, which are used to resolve the value of a property based on its name.
 
-Environment properties allow you to replace any attribute or element value in switchyard.xml with a property from the runtime environment. The syntax for a replaced token is "${varName}" where "varname" is your property name. The configuration layer in SwitchYard is configured with instances of PropertyResolver, which are used to resolve the value of a property based on its name.
+* PropertiesPropertyResolver
+* TestPropertyResolver
+* SystemAndTestPropertyResolver
+* CompoundPropertyResolver
+* MapPropertyResolver
 
-=== Where to define Environment Properties
+Creating our custom propertyResolver and registering it in switchyard.xml in switchyard as propertyResolver.
+https://github.com/jboss-switchyard/core/blob/master/config/src/main/java/org/switchyard/config/DOMConfiguration.java#L685
+
+TODO: Document this
+
+== Property resolution order
 Property values are resolved from the following locations:
 
 * System properties passed by -D option of Java VM like "-Dproperty.name=property.value"
@@ -2373,19 +2301,144 @@ Property values are resolved from the following locations:
 * Domain properties in switchyard.xml
 * SCA property definitions in the composite or component
 
-=== Property overriding
-SwitchYard property resolver scans the property in following order.
+The priority in resolving a property is from top to bottom, so a property defined as a System property will always take precedence over a property defined at domain or composite, and a property at domain level will olways take precedence over a property defined at component level.
 
-* System properties and System environment variables
-* Unit test properties
-* JBoss AS7 properties
-* Domain properties
-* SCA composite properties
-* SCA component properties
+== Injecting properties into Service Implementation
+Implementation properties allow you to inject one or more property values into a service implementation. This is based on the property support in the SCA assembly spec. Since the property is injected into service implementation logic, the injection mechanism itself is unique to each implementation type. The details for each implementation type follow:
 
- You can specify the default property value with "${propertyName:defaultValue}" syntax where "propertyName" is the name of property.
+* *Java*: injected using @Property into a CDI bean
+* *Camel*: wired into Camel properties component and accessible in a Camel route using Camel's own varName property notation
+* *BPEL*: mapped into process variables via an <assign> with using resolveProperty() XPath custom function
+* *BPMN 2*: inserted into process variables by data input associations
+* *Drools*: available in a global map
 
-=== Property escaping
+== Injecting properties in Java Bean implementations
+Implementation properties represent environmental properties that you have defined in the SwitchYard application descriptor (switchyard.xml) for your bean implementation. Implementation properties in SwitchYard are the properties that you can configure on a specific service implementation. That is, you can make the property value available to service logic executing inside an implementation container. Here is an example:
+
+[source,xml]
+----
+<sca:component name="SimpleServiceBean">
+      <bean:implementation.bean class="com.example.switchyard.switchyard_example.SimpleServiceBean"/>
+      <sca:service name="SimpleService">
+        <sca:interface.java interface="com.example.switchyard.switchyard_example.SimpleService">
+          <properties>
+            <property name="userName" value="${user.name}"/>
+          </properties>
+        </sca:interface.java>
+      </sca:service>
+</sca:component>
+----
+
+To access the Implementation Properties, add an @Property annotation to your bean class identifying the property you want to inject:
+
+[source,java]
+----
+@Service(SimpleService.class)
+public class SimpleServiceBean implements SimpleService {
+
+  @Property(name="userName")
+  private String name;
+
+  @Override
+  public String sayHello(String message) {
+        return "Hello " + name + ", I got a message: " + message;
+    }
+
+}
+----
+
+== Injecting Implementation Properties in Camel Routes
+SwitchYard integrates with the Properties Component in Camel to make system and application properties available inside your route definitions. You can inject properties into your camel route using {{propertyName}} expression, where propertyName is the name of the property.
+For example, the following camel route expects the user.name property to be injected in the last <Log> statement:
+
+[source,xml]
+----
+<route xmlns="http://camel.apache.org/schema/spring" id="CamelTestRoute">
+    <log message="ItemId [${body}]"/>
+    <to uri="switchyard://WarehouseService?operationName=hasItem"/>
+    <log message="Title Name [${body}]"/>
+    <log message="Properties [{{user.name}}]"/>
+</route>
+----
+
+== Injecting Implementation Properties in BPEL
+You can inject properties into your BPEL process definition with using *SwitchYardPropertyFunction.resolveProperty()* XPath custom function.
+
+This bpel:copy section copies "Greeting" property value into the ReplySayHelloVar variable:
+
+[source,xml]
+----
+.....
+<bpel:copy>
+     <bpel:from xmlns:property="java:org.switchyard.component.bpel.riftsaw.SwitchYardPropertyFunction"
+                expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0">
+         <![CDATA[concat(property:resolveProperty('Greeting'), $ReceiveSayHelloVar.parameters/tns:input)]]>
+     </bpel:from>
+     <bpel:to part="parameters" variable="ReplySayHelloVar">
+         <bpel:query queryLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0"><![CDATA[tns:result]]></bpel:query>
+     </bpel:to>
+</bpel:copy>
+----
+
+== Injecting Implementation Properties in BPMN 2
+TODO:
+
+== Injecting Implementation Properties in Drools
+TODO:
+
+== Invocation properties
+While it is a best practice to write your service logic to the data that is defined in the contract (the input and output message types), there can be situations where you need to access contextual information like message headers such as received file name in your implementation. To facilitate this, the Bean component allows you to access the SwitchYard Exchange Context instance associated with a given Bean Service Operation invocation.
+Invocation properties represent the contextual information (like message headers) in your bean implementation.
+
+== Accessing Invocation Properties
+To enable access to the invocation properties, add a Context property to your bean and annotate it with the CDI @Inject annotation:
+
+[source,java]
+----
+@Service(SimpleService.class)
+public class SimpleServiceBean implements SimpleService {
+
+@Inject
+private Context context;
+
+public String sayHello(String message) {
+        System.out.println("*** Funky Context Property Value: " + context.getPropertyValue("funkyContextProperty"));
+        return "Hi there!!";
+    }
+}
+----
+Here, the Context interface allows your bean logic to get and set properties in the context.
+
+NOTE: You can invoke the Context instance only within the scope of one of the Service Operation methods. If you invoke it outside this scope, it results in an UnsupportedOperationException error.
+
+== Domain properties
+See package:
+org.switchyard.common.property
+
+== Additional info
+See: https://community.jboss.org/message/867080
+
+See: https://community.jboss.org/message/819215
+
+See: https://docs.jboss.org/author/display/SWITCHYARD/Properties
+
+== Headers and context properties
+A service may be configured based on a header or a context property.
+TODO: Document how.
+
+== Scope for context properties
+Headers and properties are saved in the context with a Scope Label, that identifies the purpose of the header/property.
+TODO: Document more.
+
+== TIP Define default value for a property
+When we define a property, we can provide a default value, so if the property is not defined by the user it will get this default value. To define this default value, just append to the property name the default value, separated by a colon (:).
+
+[source,bash]
+----
+${server.port:8080}
+----
+
+== TIP Property escaping
 Sometimes, the desired value for a property needs to be in the same "dollar curly" syntax which triggers SwitchYard's property substitution. This can be problematic because in these cases, you want SwitchYard to leave the configured value alone. To accomplish this, use a "double dollar curly" syntax instead.
 
 [source,xml]
@@ -2396,71 +2449,196 @@ Sometimes, the desired value for a property needs to be in the same "dollar curl
 
 Assuming the value "prop" is a resolvable property (say, equal to "test"), the value attribute of the foo element will be that value ("test").  However, the value attribute of the bar element will be "${test}" (with one dollar sign).
 
-== SwitchYard - Implementation Properties
-Implementation properties allow you to inject one or more property values into a service implementation.
+== Where to define environment properties
+See: https://community.jboss.org/message/868913
 
-This is based on the property support in the SCA assembly spec. Since the property is injected into service implementation logic, the injection mechanism itself is unique to each implementation type. 
+== As component properties
+Properties can be defined as component property. This way of defining properties is not dynamic, but every properties defined here, can be overriden by properties defined in a "prioritized" scope.
 
-* *Java*: injected using @Property into a CDI bean
-* *Camel*: wired into Camel properties component and accessible in a Camel route using Camel's own varName property notation
-* *BPEL*: mapped into process variables via an <assign> with using resolveProperty() XPath custom function
-* *BPMN 2*: inserted into process variables by data input associations
-* *Drools*: available in a global map
-
- TODO: Create this
-
-== SwitchYard - Implementation Properties - Bean
-Implementation properties represent environmental properties that you have defined in the SwitchYard application descriptor (switchyard.xml) for your bean implementation.  To access these properties, simply add an @Property annotation to your bean class identifying the property you want to inject. The following example demonstrates injection of a "user.name" property:
-
-[source,java]
+[source, xml]
 ----
-@Service(SimpleService.class)
-public class SimpleServiceBean implements SimpleService {
- 
-   @Property(name="user.name")
-   private String name;
- 
-   public String sayHello(String message) {
-      return "Hello " + name + ", I got a message: " + message;
-   }
-}
+<sy:switchyard ...>
+  <sca:composite ...>
+    <sca:component ...>
+      ...
+      <sca:property value="test" name="MY_PROPERTY"/>
+    </sca:component>
+    <sca:service...>
+      ...
+    </sca:service>
+    <sca:reference ...>
+      ...
+    </sca:reference>
+
+  </sca:composite>
+  ...
+</sy:switchyard>
 ----
 
-== SwitchYard - Implementation Properties - Camel
-SwitchYard integrates with the Properties Component in Camel to make system and application properties available inside your route definitions. You can inject properties into your camel route using "{{propertyName}}" expression where "propertyName" is the name of the property.
+== As composite properties
+Properties can be defined as composite property. This way of defining properties is not dynamic, but every properties defined here, can be overriden by properties defined in a "prioritized" scope.
+
+[source, xml]
+----
+<sy:switchyard ...>
+  <sca:composite ...>
+    <sca:component ...>
+      ...
+    </sca:component>
+    <sca:service...>
+      ...
+    </sca:service>
+    <sca:reference ...>
+      <sca:interface.java .../>
+      <file:binding.file name="FileBinding">
+        <file:directory>/tmp</file:directory>
+        <file:fileName>${MY_FILENAME}</file:fileName>
+        <file:produce/>
+      </file:binding.file>
+    </sca:reference>
+    <sca:property value="test.txt" name="MY_FILENAME"/>
+  </sca:composite>
+  ...
+</sy:switchyard>
+----
+
+== As domain properties
+Properties can be defined as composite property. This way of defining properties is not dynamic, but every properties defined here, can be overriden by properties defined in a "prioritized" scope.
+
+[source, xml]
+----
+<sy:switchyard ...>
+  <sca:composite ...>
+    <sca:component ...>
+      ...
+    </sca:component>
+    <sca:service...>
+      ...
+    </sca:service>
+    <sca:reference ...>
+      ...
+    </sca:reference>
+  </sca:composite>
+  ...
+  <sca:domain>
+    <sca:property value="test.txt" name="MY_FILENAME"/>
+  </sca:domain>
+ </sy:switchyard>
+----
+
+== In a static module (or dynamic)
+NOTE: Right now, it seems that defining properties in static module does not work. They do not get picked up by the property resolvers.
+Properties can be externalized from the SwitchYard application it self by defining them outside the switchyard.xml file. One place could be a module. For this to work, you need to define your module:
 
 [source,xml]
 ----
-<route xmlns="http://camel.apache.org/schema/spring" id="CamelTestRoute">
-   <log message="ItemId [${body}]"/>
-   <to uri="switchyard://WarehouseService?operationName=hasItem"/>
-   <log message="Title Name [${body}]"/>
-   <log message="Properties [{{user.name}}]"/>
-</route>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<module xmlns="urn:jboss:module:1.0" name="com.examples.switchyard.properties">
+    <properties>
+        <property name="ftp_server.host" value="localhost"/>
+        <property name="ftp_server.port" value="22"/>
+    </properties>
+</module>
 ----
 
-== SwitchYard - Invocation Properties
-It is information relative to the invocation or current execution. It is carried along the SwitchYard Context.
+And use these properties in your SwitchYard application:
 
-== SwitchYard - Invocation Properties - Bean Components
-There can be situations where you need to access contextual information like message headers (e.g. received file name) in your implementation. To facilitate this, the Bean component allows you to access the SwitchYard Exchange Context instance associated with a given Bean Service Operation invocation. To get a reference to the Context, simply add a Context property to your bean and annotate it with the CDI @Inject annotation.
-
-[source,java]
+[source,xml]
 ----
-@Service(SimpleService.class)
-public class SimpleServiceBean implements SimpleService {
- 
-@Inject
-private Context context;
- 
-public String sayHello(String message) {
-        System.out.println("*** Funky Context Property Value: " + context.getPropertyValue("funkyContextProperty"));
-        return "Hi there!!";
-    }
-}
+<ftp:binding.sftp>
+    <ftp:host>${ftp_server.host}</ftp:host>
+    <ftp:port>${ftp_server.port}</ftp:port>
+   ....
+</ftp:binding.sftp>
 ----
 
- The Context interface allows your bean logic to get and set properties in the context.  Note that you can only make calls on the Context instance within the scope of one of the Service Operation methods. Invoking it outside this scope will result in an UnsupportedOperationException being thrown.
+== As OS environment properties
+Properties can be loaded from OS environment properties. Every environment property is accesible by prefixing it with *env*.
+
+So a property defined like (in bash):
+
+[source,bash]
+----
+export MY_PROPERTY=test
+----
+
+Can be used in your SwitchYard application:
+
+[source,xml]
+----
+<ftp:binding.sftp>
+    <ftp:host>${env.MY_PROPERTY}</ftp:host>
+   ....
+</ftp:binding.sftp>
+----
+
+== As Application Server properties from AS configuration
+Application server has the ability to define properties directly in it's configuration (either by file or with the console) and this configuration will be dynamically updated, and persisted.
+See: https://community.jboss.org/wiki/JBossAS7SystemProperties
+
+Adding the following configuration to the definition of the server definition:
+
+
+[source,xml]
+----
+<server name="xyz.home" xmlns="urn:jboss:domain:1.0">
+    <extensions>
+        <extension module="org.jboss.as.clustering.infinispan"/>
+        <extension module="org.jboss.as.clustering.jgroups"/>
+        <extension module="org.jboss.as.connector"/>
+        ....
+    </extensions>
+    <system-properties>
+        <property name="MY_PROPERTY" value="test"/>
+    </system-properties>
+----
+
+This properties will be used in the same way:
+
+[source,xml]
+----
+<ftp:binding.sftp>
+    <ftp:host>${MY_PROPERTY}</ftp:host>
+   ....
+</ftp:binding.sftp>
+----
+
+
+== As Application Server properties from file
+You can pass a properties file as an argument to JBoss AS startup script, and it will load all the properties in the file and make then accesible, so we can start the AS like:
+
+[source,bash]
+----
+$./standalone.sh -P file:///data/production.properties
+----
+
+And this properties will be accesible, as in any other example above.
+
+See: link:https://access.redhat.com/site/documentation/en-US/JBoss_Enterprise_Application_Platform/6.1/html/Administration_and_Configuration_Guide/chap-Application_Server_Management.html#Reference_of_Switches_and_Arguments_to_pass_at_Server_Runtime1[JBoss EAP command line switches]
+
+Provided alternatives are
+
+|====
+|-P=<url>|Load system properties from the given URL.
+|-P <url> |Load system properties from the given URL.
+|--properties=<url>|Load system properties from the given URL.
+|====
+
+== Using maven to set up your properties
+
+link:https://community.jboss.org/message/867257[Preferred approach to Switchyard multiple environment properties?]
+
+== Load all properties from a file
+WARNING: It is not possible to load all the properties available in a file, so a link:https://issues.jboss.org/browse/SWITCHYARD-2048[JIRA] has been created.
+
+[source,xml]
+----
+   <sca:properties file="ftp.properties"/>
+----
+
+== TIP How to make endpoints/config dynamic
+WARNING: Depending on the binding it is not possible to make endpoints dynamic, due to the endpoint being a property set to the binding at activation time, and not being re-definible. These endpoint that are not dynamic are those based on HTTP transport (http, rest, soap, sca). For other services, endpoints can be altered providing endpoint properties. (Those endpoints whose binding is Camel based. Look at camel docs for this properties)
+
 
 == SwitchYard - Policies (transaction, )
 Policy allows you to control the runtime behavior of a service in a declarative manner, independent of the service implementation and binding details. 
@@ -2471,17 +2649,175 @@ Policy allows you to control the runtime behavior of a service in a declarative 
 
  TODO: Create this
 
-== Transaction Policy
+== How transactions work in SwitchYard (Internals)
+Transactions are handled in the handler chain through which a Exchange flows. 
 
- TODO: Create this
+There is a specific ExchangeHandler for transactions, *org.switchyard.handlers.TransactionHandler*, that interprets transactional policy specified on an exchange and handles transactional requirements.
 
-== Transaction Interaction Policy
+For transactions to work, there must be a TransactionManager accesible to this handler, so the service must be running in a JEE context.
 
- TODO: Create this
+If no TransactionManager is available at TransactionHandler creation time, a log debug message will be shown. TransactionHandler will be instantiated (created) when deploying a service.
 
-== Transaction Implementation Policy
+TODO: Is this true??? Or it is created at SwitchYard engine boot up time?
 
- TODO: Create this
+TransactionHandler will be invoked two times per Exchange, before execution and after execution, so a transaction can be *"created, suspended"* and *"terminated, resumed"*.
+
+== TransactionHandler - Before
+In the before execution:
+
+* Policies combination is evaluated, and if an incompatible policies is defined, a HandlerException is thrown.
+* Transaction status is also checked, so if a transaction is required and there is no transaction in the current invocation a HandlerException is thrown. 
+* And then executes the required action for the combination defined, so it *starts a new transaction* or *suspends current transaction*. 
+* Failure to start or suspend the transaction will throw a HandlerException with the appropiate message, and a log debug message will be written.
+* Once the transaction is suspended/created, the required/provided policies for the Exchange are set in the Exchange context.
+
+== TransactionHandler - After
+In the after execution:
+
+* The transaction initiated by this handler (if any) will be terminated (commited or rollbacked)
+* and if there is a supended transaction, it will be resumed.
+
+NOTE: Termination function will depend on whatever *javax.transaction.Status* is set on the TransactionManager, if it is Status.STATUS_MARKED_ROLLBACK it will be rollbacked, or if it is Status.STATUS_ACTIVE it will be committed.
+
+* If there is any error while commiting or rollbacking the transaction, a HandlerException will be thrown with the appropiate message and logged accordingly, at debug level.
+* If a fault is thrown during the execution of a transaction, TransactionHandler will check for a *rollbackOnFault* property on the exchange, to determine what to do, either commit or rollback. 
+
+NOTE: Default behaviour is to set this property to true in case of an error in the execution of any SwitchYard logic, so the transaction will be *marked* as rollbackOnly, and finalized wherever it was started, with a rollback action.
+
+[source,java]
+----
+exchange.getContext().getProperty(Exchange.ROLLBACK_ON_FAULT)
+----
+
+== TIP Mark a transaction fault as managed
+To override this functionality, and be able to commit on a fault, you will need to set this property to false.
+
+TODO: Show example
+
+== SwitchYard Policy properties in Context (Internals)
+The set of required and provided policies is carried as an exchange-scoped context property.
+
+* Provided policy represents an assertion that a given policy is satisfied. 
+* Required policy represents a requirement that a specific policy must be provided.  
+
+[source,java]
+----
+Set<Policy> provided = getPolicies(exchange, PolicyUtil.PROVIDED_PROPERTY);
+provided.add(policy);
+exchange.getContext().setProperty("org.switchyard.policy.provided", provided, Scope.EXCHANGE).addLabels(BehaviorLabel.TRANSIENT.label());
+...
+Set<Policy> required = getPolicies(exchange, PolicyUtil.REQUIRED_PROPERTY);
+required.add(policy);
+exchange.getContext().setProperty("org.switchyard.policy.required", required, Scope.EXCHANGE).addLabels(BehaviorLabel.TRANSIENT.label());
+----
+
+*PolicyUtil* class have helper/utility methods to set/get policies and to check if a policy is required/provided.
+
+[source,java]
+----
+PolicyUtil.isRequired(Exchange exchange, Policy policy);
+PolicyUtil.isProvided(Exchange exchange, Policy policy);
+----
+
+== Transaction policies
+The provided Transaction policies are those defined and supported by the link:SCA specification[http://docs.oasis-open.org/opencsa/sca-policy/sca-policy-1.1-spec-csprd03.html#_Toc311121490]
+
+=== Implementation policies
+These transaction policies are set at the implementation (components definition) and define the transactiona requirement for the logic contained in the component.
+
+* *managedTransaction.Global*: Uses any existing global transaction propagated from the client or else begins and complete a new global transaction.
+* *managedTransaction.Local*: SwitchYard runtime begins and complete a Local Transaction Containment for each Exchange.
+* *noManagedTransaction*: SwitchYard runtime doesn't start any transaction. Application has a responsibility to manage the transaction boundaries.
+
+image:implementation_policies.png[Implementation policies]
+
+Implementation policies are set on the component.
+
+=== Interaction policies
+These transaction policies are set at the interaction (wire) and defines what logic drives the propagation or not of the existing transactional context.
+
+* *propagatesTransaction*: Any existing transaction should continue and be used during the invocation.
+* *suspendsTransaction*: Any existing transaction should be suspended before the invocation takes place.
+
+image:interaction_policies.png[Interaction policies]
+
+Interaction policies are set on the wire, so you need to select the component`s reference.
+
+== TIP What happens when you select None as implementation or interaction policies?
+TODO: What happens when you select None as a policy??? Implement and test, and show errors.
+
+== TIP Create at input point (with request)
+while SwithYard services will be called through one of it's service bindings, this dictates where is the transaction created. Transactions are first created in the first "wire" after the binding, so, at all effects it will be created as soon as SwitchYard starts executing the service, and before any client code, so eveything that service designers can do will fall into a transaction.
+SwitchYard will always start a transaction, if the first component being invoked is configured to:
+
+* Use LocalTransactions
+* Use GlobalTransactions and there is not an active transaction yet.
+
+If None is selected, a transaction will not be created.
+TODO: Is above sentence true???
+
+== Transaction definitions compatibility
+
+=== Implementation policy: managedTransaction.Local
+If a component defines an implementation policy of *managedTransaction.Local*, interaction policy must be set to *suspendsTransaction*, otherwise there will be an error at deployment time.
+
+
+* *suspendsTransaction*: Container will suspend the ongoing transaction, create a new one, and after execution, commit or rollback the created transaction, and resume the transaction that was suspended.
+* *propagatesTransaction: Error at deployment time.
+----
+MSC000001: Failed to start service jboss.deployment.unit."xxx.jar".SwitchYardService: org.jboss.msc.service.StartException in service jboss.deployment.unit."xxx.jar".SwitchYardService: org.switchyard.SwitchYardException: org.switchyard.SwitchYardException: SWITCHYARD012225: Implementation Policy 'managedTransaction.Local' requires 'suspendsTransaction' Interaction Policy, but it does not exist. [propagatesTransaction]
+----
+* *None: Error at deployment time.
+----
+MSC000001: Failed to start service jboss.deployment.unit."xxx.jar".SwitchYardService: org.jboss.msc.service.StartException in service jboss.deployment.unit."xxx.jar".SwitchYardService: org.switchyard.SwitchYardException: org.switchyard.SwitchYardException: SWITCHYARD012225: Implementation Policy 'managedTransaction.Local' requires 'suspendsTransaction' Interaction Policy, but it does not exist. []
+----
+
+==== Implementation policy: managedTransaction.Global
+If a component defines an implementation policy of *managedTransaction.Global*, interaction policy can be set to:
+
+* *suspendsTransaction*:  (Deploys correctly). Container will suspend the ongoing transaction, create a new one, and after execution, commit or rollback the created transaction, and resume the transaction that was suspended.
+* *propagatesTransaction*: (Deploys correctly). Container will use the same transaction as the receiving one.
+* *None*: (Deploys correctly) (Behaves???)
+
+==== Implementation policy: noManagedTransaction
+If a component defines an implementation policy of *noManagedTransaction*, interaction policy can be set to:
+
+* *suspendsTransaction*:  (Deploys correctly) (Behaves???)
+* *propagatesTransaction*: Error at deployment time.
+----
+MSC000001: Failed to start service jboss.deployment.unit."xxx.jar".SwitchYardService: org.jboss.msc.service.StartException in service jboss.deployment.unit."xxx.jar".SwitchYardService: org.switchyard.SwitchYardException: org.switchyard.SwitchYardException: SWITCHYARD012227: Implementation Policy 'noManagedTransaction' is not compatible with Interaction Policy 'propagatesTransaction'
+----
+* *None*: (Deploys correctly) (Behaves???)
+
+== Transaction propagation
+Transaction propagation will be honoured, if defined, for every interaction between service components (if these components are transactional) as well as with external services being called (if these services are called via a transactional resource).
+
+=== Transaction propagation via SCA
+TODO: Is this a JTA enabled transactioanl resource? Are transactions propagated between containers?
+
+== Transactional resources
+Current transactional resources existing in SwitchYard are:
+
+Implementations::
+* Bean
+* Camel
+* BPMN
+* BPEL
+* Rules
+
+Bindings::
+* SCA
+* JMS
+* JCA
+* JPA
+* SQL
+* Camel
+
+QUESTION: This needs to be validated
+
+== TIP Using transactions with EJBs for persistence
+
+TODO: Document this
 
 == Security Policy
 
@@ -3707,174 +4043,6 @@ If you need to do unit testing for a service with policies defined in it, or a c
 
  TODO: Create this
 
-== RTGov
-What is Runtime monitoring 
-
-* Extract the information (events) (https://mojo.redhat.com/docs/DOC-982732)
-* Process the information (analyze)
-* Display information (visualize)
-
-What is policy enforcement
-
-* Sync policy
-* Async policy
-
-What is SLA
-
-* sla
-* situations
-
-For call trace
-* ActivityReporter: reports activity to the BAM server. Can be injected with @Inject in a Bean Component. (How can be injected in Camel or any other???) Has methods logError, logWarn, logInfo,...
-
-For policies:
-* AbstractExchangeValidator extends ExchangeInterceptor: This class observes exchanges and uses the information to create activity events to be validated
-* ExchangeInterceptors allow code to be injected around specific interactions in the core exchange bus via a target definition. Valid targets are documented as constant fields in this interface
-
-InformationProcessor that is based on a set of expressions used to extract relevant data from the supplied information.
-
-
-image::overlord/rtgov/rtgov_architecture.jpg[RTGov Architecture]
-
-image::overlord/rtgov/policy_Async_Enforcement.jpg[Policy Async Enforcement]
-
- TODO: Create this
-
-
-== DTGov
-The DTGov project layers Design Time Governance functionality on top of an S-RAMP repository. These two projects work together to provide the following:
-
-* Store and Govern artifacts
-* Custom Governance Workflows
-*Integrated Governance Human Task Management
-
-== What is S-RAMP
-S-RAMP stands for *SOA Repository Artifact Model and Protocol*. 
-
-S-RAMP is a new specification worked on by the OASIS Technical Committee.
-
-[quote, OASIS Charter, https://www.oasis-open.org/committees/s-ramp/charter.php]
-____
-The SOA Repository Artifact Model and Protocol (S-RAMP) TC defines a common data model for SOA repositories as well as an interaction protocol to facilitate the use of common tooling and sharing of data. The TC will define an ATOM binding which documents the syntax for interaction with a compliant repository for create, read, update, delete and query operations.	 
-____
-
-== S-RAMP
-An S-RAMP repository primarily stores artifacts. An artifact is comprised of the following meta-data:
-
-* Core properties
-* Custom properties
-* Classifiers (Ontologies)
-* Relationships
-
-== Core properties
-All artifacts in S-RAMP contain a set of core properties such as name, description, creation date, etc. 
-
-Many of these properties are automatically set by the server when the artifact is added and/or updated. Others, such as description, can be set by clients.
-
-Every artifact has an *Artifact Model* and an *Artifact Type*.
-
-NOTE: These two properties determine what kind of artifact it is.
-
-Some artifact types contain additional core properties. 
-
- For example, the Document artifact type includes additional core properties of contentType and contentSize, while the XsdDocument artifact type includes the targetNamespace property.
-
-== Custom properties
-An artifact may have additional properties set on it by clients. 
-
-These custom properties are simply arbitrary *name/value pairs*.
-
-WARNING: The only restriction is that a custom property may NOT have the same name as a core property.
-
-== Ontologies
-An ontology is simply a hierarchy of tags (defined as a subset of the OWL Lite format).
-
-This allows the repository to be configured with a pre-defined set of hierarchical tags (classifiers) that can be associated with an artifact.
-
-== Classifiers
-Classifiers are a lot like keywords or tags except that they are hierarchical.
-
-Every artifact has a collection of classifiers configured by the client, where each classifier must be a node in an ontology previously uploaded to the repository.
-
-== Relationships
-An S-RAMP relationship is a uni-directional link between a source artifact and a target artifact.
-
-Artifacts can have arbitrary, client-defined relationships.
-
-Every relationship has a name and a target artifact.
-
-
- For example, a client might define a relationship named "documentedBy" between a wsdl artifact and a text or PDF artifact, indicating that the latter provides documentation for the former.
-
-== S-RAMP UI
-Available at: http://<server>:8080/s-ramp-ui
-
-image::overlord/dtgov/sramp/srampui.png[S-Ramp UI]
-
-== S-RAMP shell
-Available at: ${DTGOV_HOME}/bin/s-ramp.sh
-
-image::overlord/dtgov/sramp/sramp_shell.png[S-Ramp shell]
-
-== S-RAMP users and roles
-There are several roles that the user must have in order to interact with the S-RAMP repository. These roles are as follows:
-
-* *overlorduser*: users must have this role in order to access the S-RAMP user interface (browser)
-* *admin.sramp*: users must have this role in order to access the S-RAMP repository (both read and write)
-
-== S-RAMP Data models (from the standard)
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_s_ramp_data_models.html
-
-== S-RAMP Query language (from the standard)
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_query_language.html
-
-== S-RAMP Rest API (from the standard)
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_s_ramp_rest_api.html
-
-== Overlord S-RAMP implementation
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_implementation.html
-
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_rest_api_endpoints.html
-
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_the_s_ramp_browser_ui.html
-
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_command_line.html
-
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_maven_integration.html
-
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_server_configuration.html
-
-== How DTGov Works
-http://docs.jboss.org/overlord/dtgov/1.3.0.Final/html/_introduction_to_dtgov.html
-
-* Workflows are created from JBoss jBPM (BPMN2) process definitions.
-* A version of jBPM is embedded in the deployed dtgov.war. This version of jBPM is configured to use the S-RAMP repository as the source for workflow definitions.
-* To use a workflow with DTGov, the jBPM workflow files must be bundled into a Jar file named "dtgov-workflows.jar" and uploaded to the DTGov S-RAMP repository. There are several methods than can be used to deploy the workflow jar file to S-RAMP. We recommend that you use maven.
-* The embedded jBPM pulls the dtgov-workflow.jar out of S-RAMP at runtime and uses the workflow definitions found therein.
-* In this context, "runtime" refers to whenever a new workflow instance is created (typically triggered by an artifact being added or changed in the s-ramp repository).
-* Any human tasks that are used in any DTGov workflow will appear in the Tasks UI included in the DTGov UI (http://localhost:8080/dtgov-ui)
-* A workflow deployment only shows up in the dtgov-ui/#deployments page once a lifecycle management jBPM process is kicked off for it.
-
-== Define targets
-
-== Define ontologies
-
-== Define workflows
-
-== Deploy artifacts
-
-== Govern
-
-== DTGov
- * App building
- * life-cycle management
- * Deployment
- * Integrating the build/test/deployment process into a maven based build engine
-
-image::overlord/dtgov/soa_governance.png[SOA Governance]
-
- TODO: Create this
-
 == Development
  
  * JBoss Developer Studio + IS plugins
@@ -3897,153 +4065,4 @@ image::overlord/dtgov/soa_governance.png[SOA Governance]
 
  TODO: Create this
 
-== Architecture - Topologies
-* Simple topology (All in one)
-* Environmental topology
-* Environmental topology with unified governance
-
-== Simple topology (All in one)
-This topology deploys all the functions in the same boxes, a set of 2 or more boxes (to have clustering) and it is not recommended as the production approach, but rather for PoC and demoing.
-
-image::fsw/architecture/FSW_deployment_allinone.jpg[FSW Architecture]
-
-This topology is a simple topology and will consist of:
-
-* A cluster of servers for SwitchYard, rtGov + dtGov.
-* We will typically front this cluster with a Load Balancer. For this we usually have two options, a Hardware load balancer (typically this is clustered) or an httpd+mod_cluster (usually in an HA manner, A/A or A/P)
-* We also have a cluster of databases (amongst those supported by the product) in a clustered way, for HA.
-
-Httpd servers and database servers ca be co-located on the same boxes as the FSW servers, so reducing the required amount of boxes needed for this.
-
-We need to take into account for this topology additional constraints such as:
-
-* Having a separate messaging topology included in the solution and connected from SwitchYard clusters via JMS bridge or ActiveMQ/HornetQ jca adapter.
-* Having shared storage for file based type of services
-
-== Environmental topology
-This topology deploys every function into every existing environment in a clustered manner per functionality.
-
-image::fsw/architecture/FSW_deployment_environmental.jpg[FSW Architecture]
-
-In every environment we will have:
-
-* A large cluster of servers for SwitchYard (this servers include rtGov client) that will do the service execution.
-* We will typically front this cluster with a Load Balancer. For this we usually have two options, a Hardware load balancer (typically this is clustered) or an httpd+mod_cluster (usually in an HA manner, A/A or A/P)
-* A cluster of RTGov servers (for HA) that will be doing runtime governance analisys. This cluster will be A/P and accessed through a VIP.
-* We also have a cluster of databases (amongst those supported by the product) in a clustered way, for HA.
-* A cluster for Design Time Governance that will orchestrate the state of services in that environment. Promotion of artifacts amongst environments will be done manually, and thus the solely purpose of this DTGov cluster in the environment is to provide with the S-RAMP storage capabilities for artifacts and metadata.
-
-Usually these environments (dev, qa, test, stage, preprod, prod,...) will not be the same in terms of size and capabilities, so Development environment tends to be much smaller in terms of number of boxes and capabilities of those boxes (cores/cpus, ram,...).
-
-We need to take into account for this topology additional constraints such as:
-
-* Having a separate messaging topology included in the solution and connected from SwitchYard clusters via JMS bridge or ActiveMQ/HornetQ jca adapter.
-* Having shared storage for file based type of services
-
-== Environmental topology with unified governance
-This topology deploys clusters of main functions per existing environment and shares a common layer (cluster/environment) for design time governance (DTGov) responsibilities.
-
-image::fsw/architecture/FSW_deployment.jpg[FSW Architecture]
-
-In every environment we will have:
-
-* A large cluster of servers for SwitchYard (this servers include rtGov client) that will do the service execution.
-* We will typically front this cluster with a Load Balancer. For this we usually have two options, a Hardware load balancer (typically this is clustered) or an httpd+mod_cluster (usually in an HA manner, A/A or A/P)
-* A cluster of RTGov servers (for HA) that will be doing runtime governance analisys. This cluster will be A/P and accessed through a VIP.
-* We also have a cluster of databases (amongst those supported by the product) in a clustered way, for HA.
- 
-Also, we will lie down a shared environment for Design Time Governance that will orchestrate the state of services between the different environments. This environment is one single environment and can be co-located in any of the other environments, and then making advantage of the load balancing and database capabilities already available in that environment.
- 
-Usually this environments will not be the same in terms of size and capabilities, so Development environment tends to be much smaller in terms of number of boxes and capabilities of those boxes (cores/cpus, ram,...)
- 
-We need to take into account for this topology additional constraints such as:
-
-* Having a separate messaging topology included in the solution and connected from SwitchYard clusters via JMS bridge or ActiveMQ/HornetQ jca adapter.
-* Having shared storage for file based type of services
-
-== Adding ActiveMQ
-Usually, when adding to the architecture a messaging broker, you would like to add it in a HA way, and running in separate processes.
-
-There are multiple ways of adding a messaging broker (master/slave, network of brokers,...) but all of them, if using ActiveMQ, requires that the communication between FSW (SwitchYard) and the messaging brokers is done with the ActiveMQ JCA resource adapter.
-
-image::fsw/architecture/FSW_ActiveMQ.png[FSW + ActiveMQ]
-
-== Complete FSW stack
-This topology deploys clusters of main functions per existing environment and shares a common layer (cluster/environment) for design time governance (DTGov) responsibilities.
-
-image::fsw/architecture/FSW_deployment_environmental_messaging_jon.jpg[Complete architecture]
-
-In every environment we will have:
-
-* A large cluster of servers for SwitchYard (this servers include rtGov client) that will do the service execution.
-* We will typically front this cluster with a Load Balancer. For this we usually have two options, a Hardware load balancer (typically this is clustered) or an httpd+mod_cluster (usually in an HA manner, A/A or A/P)
-* A cluster of RTGov servers (for HA) that will be doing runtime governance analisys. This cluster will be A/P and accessed through a VIP.
-* We also have a cluster of databases (amongst those supported by the product) in a clustered way, for HA.
-* A cluster of messaging brokers (With their requirements in terms of shared storage/database for HA).
-* A cluster of management and monitoring servers with JBoss OperationNetwork (JON) 
- 
-Also, we will lie down a shared environment for Design Time Governance that will orchestrate the state of services between the different environments. This environment is one single environment and can be co-located in any of the other environments, and then making advantage of the load balancing and database capabilities already available in that environment.
- 
-Usually this environments will not be the same in terms of size and capabilities, so Development environment tends to be much smaller in terms of number of boxes and capabilities of those boxes (cores/cpus, ram,...)
-
-== Continuous Delivery with FSW
-FSW is a great product, and incorporates in the suite a Governance solution for services lifecycle. We usually don't have a clear picture of how to map this product to user requirements, and how to integrate into the customer environments or way of doing things.
-What I describe here are some examples of use cases that can be done with DTGov to enable Continuous Delivery of services for a customer. Of course, these are just examples, and every customer/organization will have their specific concerns or tools or way of working, so this process *ALWAYS* needs to be tailored for the customer. But you can use these examples to get into the conversation with the customer.
-
-== Tag Final version after all testing phases
-This example here assumes the customer will go through all their testing phases using a "Snapshot" or not "final" version of the artifact, and will tag it as Final just when the artifact is ready to be promoted to the production environment. If testing at some point fails, version will not be bumped.
-
-image::fsw/architecture/DTGov_CD.png[CD with FSW]
-
-. Developer commit/pushes their development to the VCS (Version Control System) they are using (Git, SVN,...)
-.. To note that developer will use artifact repository to fetch dependencies. For this example, it will use Nexus for released versions and dtGov for snapshots. (An option can be to have nexus proxy to dtGov for the Snapshots)
-. Continuous Integration server fetches latest code from VCS and trigger the execution of the build job that will build and do unit tests on the code. If everything works fine, and all tests pass, it will deploy the generated artifact to DTGov via maven deployment API.
-. DTGov will start executing the configured workflow for this kind of service.
-.. DTGov can have multiple workflows for different kind of services.
-. DTGov will deploy/install/copy the artifact to the target environment with the configured deployment process (Using maven, JBoss cli, file copy or JON)
-. Workflow will be in waiting state for the configured used to functional validate the development in the corresponding environment (dev in this example).
-. Once the user has validated the development doing the pertinent functional/integration/performance/xxx tests it will approve or reject the task in "DTGov task inbox" which will trigger a finish of the workflow (in case of reject) or continue the workflow (in cse of approve).
-.. Bundled workflow (OOTB) sends an email notification with the result of the approval/rejection action taken.
-. DTGov workflow continues (in case of approval) and it will deploy to next configured environment, and will create a task for the corresponding user.
-. Corresponding user will validate the development, as before.
-. User will approve or reject, as before. And so forth with every environment but the last one.
-. This example assumes that no automatic deployment can be made to production systems, so part of the workflow, the corresponding to "PROD" environment, will trigger a job in the CI server to release the software (development) and do whatever is appropriate for the task.
-. This CI release job, will tag the version in the VCS used.
-. It will build the tagged version and it will deploy it to the Artifact repository to the released group for the corresponding project. This way, artifact is accessible.
-. Ops guy (team) will get the artifact from the artifact repository
-. And it will install it to the "PROD" environment with their "Pass to Production" procedures.
-
-== Tag Final version before all testing phases
- 
-This example here assumes the customer will go through all their testing phases using a tagged version of the artifact. If testing at some point fails, version will be bumped, and a version that will never get into production will have been produced.
-
-image::fsw/architecture/DTGov_CD-TagFirst.png[CD with FSW]
-
-. Developer commit/pushes their development to the VCS (Version Control System) they are using (Git, SVN,...)
-.. To note that developer will use artifact repository to fetch dependencies. For this example, it will use Nexus for released versions and dtGov for snapshots. (An option can be to have nexus proxy to dtGov for the Snapshots)
-. Continuous Integration server fetches latest code from VCS and trigger the execution of the build job that will build and do unit tests on the code.
-. If everything works fine, the release will be tagged.
-. CI server will deploy the generated artifact to DTGov via maven deployment API. DTGov will start executing the configured workflow for this kind of service.
-.. DTGov can have multiple workflows for different kind of services.
-. DTGov will deploy/install/copy the artifact to the target environment with the configured deployment process (Using maven, JBoss cli, file copy or JON)
-. Workflow will be in waiting state for the configured used to functional validate the development in the corresponding environment (dev in this example).
-. Once the user has validated the development doing the pertinent functional/integration/performance/xxx tests it will approve or reject the task in "DTGov task inbox" which will trigger a finish of the workflow (in case of reject) or continue the workflow (in cse of approve).
-.. Bundled workflow (OOTB) sends an email notification with the result of the approval/rejection action taken.
-. DTGov workflow continues (in case of approval) and it will deploy to next configured environment, and will create a task for the corresponding user.
-. Corresponding user will validate the development, as before.
-. User will approve or reject, as before. And so forth with every environment but the last one.
-. This example assumes that no automatic deployment can be made to production systems, so part of the workflow, the corresponding to "PROD" environment, will deploy install the "verified" artifact into the artifact repository (nexus).
-. Ops guy (team) will get the artifact from the artifact repository
-. And it will install it to the "PROD" environment with their "Pass to Production" procedures.
-
-== DT With FSW CAVEATS
-* As I said, there is no golden rule on how to do CI/CD with DTGov. Every SCM (Software Configuration Management) tools has their specifics, and these here presented are shown to be valid with Jenkins as CI server, Git as VCS and Nexus as artifact repository.
-* Deployment process can be more complicated than what is here expressed, as SwitchYard doesn't allow yet for domain mode (as of FSW 6.0.0), so installation of the artifact to the environment can be tricky. If using JON, things seem simpler.
-* Configuration of development station has to be taken into account and configured accordingly to their artifact repository and to the way of grouping their dependencies.
-* Even DTGov can be used as maven server for artifact dependencies, we assume for this workflow that nexus will be the single source of "Final" artifacts, as this simplifies maven "settings.xml" configuration for developers. Nexus can proxy DTGov as a named repository.
-* This is an example based on the OOTB workflow with the difference that promotion to Prod environment is not automatic. (As I have yet to see a company that does allow for automatic deployment to prod systems, so I feel this is more realistic).
-
-== Thank you
-
-That's all.
-
+// vim: set syntax=asciidoc:

@@ -1,0 +1,53 @@
+= FSW RTGov
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:description: FSW training
+:revdate: 2014-07-17
+:revnumber: 0.1
+:icons: font
+:imagesdir: ./images
+:figure-caption!:
+:deckjs_theme: beamer
+// web-2.0
+//:deckjs_transition: horizontal-slide
+//:pygments:
+//:pygments_style: native
+:scrollable:
+// :linkcss: ./css/redhat.css
+//:count_nested:
+
+== RTGov
+What is Runtime monitoring 
+
+* Extract the information (events) (https://mojo.redhat.com/docs/DOC-982732)
+* Process the information (analyze)
+* Display information (visualize)
+
+What is policy enforcement
+
+* Sync policy
+* Async policy
+
+What is SLA
+
+* sla
+* situations
+
+For call trace
+* ActivityReporter: reports activity to the BAM server. Can be injected with @Inject in a Bean Component. (How can be injected in Camel or any other???) Has methods logError, logWarn, logInfo,...
+
+For policies:
+* AbstractExchangeValidator extends ExchangeInterceptor: This class observes exchanges and uses the information to create activity events to be validated
+* ExchangeInterceptors allow code to be injected around specific interactions in the core exchange bus via a target definition. Valid targets are documented as constant fields in this interface
+
+InformationProcessor that is based on a set of expressions used to extract relevant data from the supplied information.
+
+
+image::overlord/rtgov/rtgov_architecture.jpg[RTGov Architecture]
+
+image::overlord/rtgov/policy_Async_Enforcement.jpg[Policy Async Enforcement]
+
+ TODO: Create this
+
+
+// vim: set syntax=asciidoc:
