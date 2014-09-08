@@ -7,14 +7,14 @@
 :icons: font
 :imagesdir: ./images
 :figure-caption!:
-:deckjs_theme: beamer
-// web-2.0
-//:deckjs_transition: horizontal-slide
+:deckjs_theme: web-2.0
+// web-2.0, swiss, neon, beamer
+:deckjs_transition: fade
 //:pygments:
 //:pygments_style: native
 :scrollable:
 // :linkcss: ./css/redhat.css
-//:count_nested:
+// :count_nested:
 
 == FSW from the Red Hat website
 
@@ -23,9 +23,11 @@ ____
 Red Hat® JBoss® Fuse Service Works is a platform that creates reusable, changeable, and flexible business services that hide the complexity of connecting to different applications in your enterprise. It sets the stage for faster and easier cloud apps, mobile apps, and business process development projects.
 
 JBoss Fuse Service Works combines technical innovations from leading open source projects with the experience and support you expect from a world-class software provider.
+____
+
+== FSW from the Red Hat website
 
 image::fsw/FSW_benefits.png[FSW benefits]
-____
 
 == FSW from the JBoss.org
 
@@ -47,18 +49,20 @@ ____
 == FSW Core Capabilities
 The benefits of using Red Hat JBoss Fuse Service Works include the following:
 
-Enterprise Integration Pattern (EIP) Based Development:: The versatile EIP framework is implemented in routing and transformation processes for faster and more efficient integration solutions.
-High Performance Messaging:: A high performance messaging broker supports messaging patterns such as publish-subscribe, point-to-point and store-forward, and multiple cross language clients.
-Service Development:: The web services framework exposes integration assets as services and calls external services, supporting all major web services standards. It also supports RESTful calls.
-Structured Service Development:: A lightweight service development framework provides full lifecycle support for developing, deploying, and managing service-based applications.
-Automatable Registry with Workflow:: Manage the lifecycle of services from design, development and deployment by defining, exposing and enforcing rules or policies.
-Business Transaction Monitoring:: Capture service activity information, define and collect metrics, and define alerts and SLAs.
-Report a bug:: (Just kidding)
+*Enterprise Integration Pattern (EIP) Based Development*:: The versatile EIP framework is implemented in routing and transformation processes for faster and more efficient integration solutions.
+*High Performance Messaging*:: A high performance messaging broker supports messaging patterns such as publish-subscribe, point-to-point and store-forward, and multiple cross language clients.
+*Service Development*:: The web services framework exposes integration assets as services and calls external services, supporting all major web services standards. It also supports RESTful calls.
+*Structured Service Development*:: A lightweight service development framework provides full lifecycle support for developing, deploying, and managing service-based applications.
+*Automatable Registry with Workflow*:: Manage the lifecycle of services from design, development and deployment by defining, exposing and enforcing rules or policies.
+*Business Transaction Monitoring*:: Capture service activity information, define and collect metrics, and define alerts and SLAs.
+*Report a bug*:: (Just kidding)
 
-=== FSW as System Integration
+== FSW as System Integration
+____
 Integrating your major business systems into a cohesive infrastructure can be a challenge, especially when you have legacy applications. Red Hat JBoss Fuse Service Works has a number of ways enable you to integrate both new and legacy applications. Development is simplified with a transparent, lightweight service framework which uses EIP technology. This allows developers to focus on higher order concepts while still working with familiar technologies such as Apache Camel, BPEL, BPMN or POJOs. To reduce the operational costs of production and maintenance, the platform utilizes automatable, content-aware repository and service activity monitoring. These support the entire service lifecycle and development, QA and production teams with run-time and design-time visibility, monitoring and alerting.
+____
 
-== What is integration
+== What is Systems Integration
 
 [quote, Wikipedia, http://en.wikipedia.org/wiki/Systems_integration]
 ____
@@ -67,7 +71,7 @@ System integration is defined as the process of bringing together the component 
 The system integrator brings together discrete systems utilizing a variety of techniques such as computer networking, enterprise application integration, business process management or manual programming.
 ____
 
-== What is applications integration
+== What is Applications Integration
 
 [quote, MuleSoft, https://www.mulesoft.com/resources/esb/applications-integration]
 ____
@@ -81,11 +85,29 @@ ____
 Governance refers to "all processes of governing, whether undertaken by a government, market or network, whether over a family, tribe, formal or informal organization or territory and whether through laws, norms, power or language." It relates to processes and decisions that seek to define actions, grant power and verify performance.
 ____
 
-== Training contents
+== In human words
 
-* SwitchYard
-* RTGov
-* DTGov
+Is FSW simple to explain? 
+
+How would you explain it to your son/wife/friend/(put whatever here)?
+
+== SwitchYard - Service Execution Server (Bus and Orchestration) 
+
+image::fsw/bus.jpg[]
+
+Takes service requests from point A to point B and does something in between with this requests. Enrich, translate, orchestrate, combine, aggregate, split, ...
+
+== RTGov - Service monitoring and policy enforcement
+
+image::fsw/revisor.jpg[]
+
+Controls that service requests can execute and monitor the execution of the services.
+
+== DTGov - Service Matadata repository   
+
+image::fsw/mapa.jpg[]
+
+Holds information about available services and the metadata of those services.
 
 == FSW Overview - Components
 
@@ -99,5 +121,56 @@ image:fsw/fsw_layers.png[FSW layers]
 
 image:fsw/fsw_architecture.png[FSW architecture]
 
+== FSW - What`s coming 
+Next version of FSW will be 6.2 (to align with Fuse), and will be containing not many big improvements, some outlined here:
+
+[cols="1,4"]
+|===
+|SwitchYard
+a|
+* Support for Karaf (2.3.x)
+* Support for Wildfly and EAP 6.3
+* Camel context support (being able tor register things like namespaces)
+* New Debugger in the tooling
+* IN_OUT JCA binding
+* Camel SAP Component
+* Camel Atom Component
+* Camel RSS Component
+* Camel Bindy component
+* Camel HL7 Component
+* Camel Mina support
+* Camel CXF component 
+* XQuery support for transformations
+* MQTT (Binding)
+* Usage of CXF descriptor directly (spring definition)
+* Dozer transformations and components
+* Remote client for Drools and BPM (although tight to current release of BPMS/BRMS and no guarantee of supportability with different releases)
+* Securty Context upgrades
+
+|DTGov
+a|
+* Support for Karaf (2.3.x)
+* Support for Wildfly and EAP 6.3
+* New DTGov UI (more pages, easier navigation, search, configuration from page)
+* New S-Ramp UI (more pages, easier navigation, search, configuration from page)
+* Support for domain mode + configuration in JBoss xml files
+
+|RTGov
+a|
+* New RTGov UI
+* Support for Karaf (2.3.x)
+* Support for Wildfly and EAP 6.3
+* Support for domain mode + configuration in JBoss xml files 
+* Elastic search + Kibana integration
+|===
+
+
+== Training contents
+
+[incremental="true"]
+* SwitchYard
+* RTGov
+* DTGov
+* Architectures, Continuous Delivery with DTGov,...
 // vim: set syntax=asciidoc:
 

@@ -7,7 +7,7 @@
 :icons: font
 :imagesdir: ./images
 :figure-caption!:
-:deckjs_theme: beamer
+:deckjs_theme: web-2.0
 // web-2.0
 //:deckjs_transition: horizontal-slide
 //:pygments:
@@ -80,7 +80,7 @@ An implementation acts as the 'brain' of a service component and it is how imple
 
 * *Bean*: allows a CDI Bean to consume or provide services using annotations.
 * *Camel*: EIP-style routing and service composition using the XML or Java DSL in Apache Camel.
-* *BPMN 2*: service orchestration and human task integration expressed as BPMN 2 and executed using jBPM.
+* *BPMN 2*: service orchestration integration expressed as BPMN 2 and executed using jBPM.
 * *BPEL Process*: web service orchestration using the OASIS Business Process Execution Language.
 * *Rules*: decision services based on Drools.
 
@@ -1178,8 +1178,6 @@ When providing a service, a handler is specified while registering the service t
 
 TODO: Describe how an Exchange goes from one ServiceHandler/Exchange to another ServiceHandler/ExchangeHandler, how the message is created. How to create and set new messages back in the Exchange, What is the pipeline that drives the Exchange lifecycle,...
 
-== Core concepts - 
-
 == Core concepts - ServiceHandlers
 
 Every SwitchYard application has a composite service with one or multiple bindings. 
@@ -1246,8 +1244,23 @@ image::switchyard/core/MessageComposition_Flow.jpg[Message composition flow]
 NOTE: Additional behaviour relative to the correspoding transaltions will exist in the predefined MessageComposers and ContextMappers (SOAP, REST, HTTP,...) 
 
 == How does an OutboundHandler Works
+When it is created, an instance of the BindingModel (configuration) is passed, as well as an instance of the ServiceDomain, is passed to the OutboundHandler.
 
-TODO: Define this.
+When it starts creates and configures a ENdpoint consumer to access the external service through the corresponding Binding method (HTTP, SOAP, REST, ...).
+
+Provides one method, *handleMessage*, where all the logic for an invocation to the external service happens.
+
+No stop lifecycle.
+
+== OutboundHandler.handleMessage()
+* add identy to the Exchange to identify the origin of the invocation
+* decompose the message (*MessageComposer.decompose()*) to a binding Message (*BindingData*)
+* it will use the dispatcher (HTTP, SOAP, REST, ...) to invoke the real service with the binding data
+* If it is IN_OUT:
+** it will wait for a response
+** it will compose the response (*MessageComposer.compose()*) from the received BindingData back into a Message
+* send the Message to the Exchange (*Exchange.send()*) (or *Exchange.sendFault()* if it was an error)
+
 
 == Core concepts - ExchangeHandler Chains
 Communications between components and bindings to/from components is done by a LocalExchangeBus.
