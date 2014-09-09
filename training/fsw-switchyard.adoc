@@ -2742,7 +2742,7 @@ These transaction policies are set at the implementation (components definition)
 * *managedTransaction.Local*: SwitchYard runtime begins and complete a Local Transaction Containment for each Exchange.
 * *noManagedTransaction*: SwitchYard runtime doesn't start any transaction. Application has a responsibility to manage the transaction boundaries.
 
-image:implementation_policies.png[Implementation policies]
+image:switchyard/transactions/implementation_policies.png[Implementation policies]
 
 Implementation policies are set on the component.
 
@@ -2752,7 +2752,7 @@ These transaction policies are set at the interaction (wire) and defines what lo
 * *propagatesTransaction*: Any existing transaction should continue and be used during the invocation.
 * *suspendsTransaction*: Any existing transaction should be suspended before the invocation takes place.
 
-image:interaction_policies.png[Interaction policies]
+image:switchyard/transactions/interaction_policies.png[Interaction policies]
 
 Interaction policies are set on the wire, so you need to select the component`s reference.
 
@@ -2776,11 +2776,11 @@ If a component defines an implementation policy of *managedTransaction.Local*, i
 
 
 * *suspendsTransaction*: Container will suspend the ongoing transaction, create a new one, and after execution, commit or rollback the created transaction, and resume the transaction that was suspended.
-* *propagatesTransaction: Error at deployment time.
+* *propagatesTransaction*: Error at deployment time.
 ----
 MSC000001: Failed to start service jboss.deployment.unit."xxx.jar".SwitchYardService: org.jboss.msc.service.StartException in service jboss.deployment.unit."xxx.jar".SwitchYardService: org.switchyard.SwitchYardException: org.switchyard.SwitchYardException: SWITCHYARD012225: Implementation Policy 'managedTransaction.Local' requires 'suspendsTransaction' Interaction Policy, but it does not exist. [propagatesTransaction]
 ----
-* *None: Error at deployment time.
+* *None*: Error at deployment time.
 ----
 MSC000001: Failed to start service jboss.deployment.unit."xxx.jar".SwitchYardService: org.jboss.msc.service.StartException in service jboss.deployment.unit."xxx.jar".SwitchYardService: org.switchyard.SwitchYardException: org.switchyard.SwitchYardException: SWITCHYARD012225: Implementation Policy 'managedTransaction.Local' requires 'suspendsTransaction' Interaction Policy, but it does not exist. []
 ----

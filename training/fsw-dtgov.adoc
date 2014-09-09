@@ -7,8 +7,8 @@
 :icons: font
 :imagesdir: ./images
 :figure-caption!:
-:deckjs_theme: beamer
-// web-2.0
+:deckjs_theme: web-2.0
+// web-2.0 beamer
 //:deckjs_transition: horizontal-slide
 //:pygments:
 //:pygments_style: native
@@ -21,7 +21,13 @@ The DTGov project layers Design Time Governance functionality on top of an S-RAM
 
 * Store and Govern artifacts
 * Custom Governance Workflows
-*Integrated Governance Human Task Management
+* Integrated Governance Human Task Management
+
+In addition to a general framework for triggering business workflows based on changes to artifacts in the S-RAMP repository, the DTGov project focuses on the following specific Governance Use Cases:
+
+* Deployment Lifecycle Management
+
+image::overlord/dtgov/soa_governance.png[SOA Governance]
 
 == What is S-RAMP
 S-RAMP stands for *SOA Repository Artifact Model and Protocol*. 
@@ -40,6 +46,8 @@ An S-RAMP repository primarily stores artifacts. An artifact is comprised of the
 * Custom properties
 * Classifiers (Ontologies)
 * Relationships
+
+NOTE: Overlord S-RAMP repository uses ModeShape as core, and a database to store it's artifacts. (H2 by default)
 
 == Core properties
 All artifacts in S-RAMP contain a set of core properties such as name, description, creation date, etc. 
@@ -66,6 +74,58 @@ An ontology is simply a hierarchy of tags (defined as a subset of the OWL Lite f
 
 This allows the repository to be configured with a pre-defined set of hierarchical tags (classifiers) that can be associated with an artifact.
 
+== Sample Ontology
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+	xmlns:owl="http://www.w3.org/2002/07/owl#"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xml:base="http://www.example.org/sample-ontology-1.owl">
+	
+	<owl:Ontology rdf:ID="SampleOntology1">
+		<rdfs:label>Sample Ontology 1</rdfs:label>
+		<rdfs:comment>A sample ontology.</rdfs:comment>
+	</owl:Ontology>
+	
+	<owl:Class rdf:ID="All">
+		<rdfs:label>All</rdfs:label>
+	</owl:Class>
+	
+	<owl:Class rdf:ID="King">
+		<rdfs:subClassOf rdf:resource="http://www.example.org/sample-ontology-1.owl#All" />
+		<rdfs:label>King</rdfs:label>
+		<rdfs:comment>Feudal ruler.</rdfs:comment>
+	</owl:Class>
+	<owl:Class rdf:ID="Imperator">
+		<rdfs:subClassOf rdf:resource="http://www.example.org/sample-ontology-1.owl#All" />
+		<rdfs:label>Imperator</rdfs:label>
+		<rdfs:comment>Roman ruler.</rdfs:comment>
+	</owl:Class>
+
+	<owl:Class rdf:ID="Baron">
+		<rdfs:subClassOf rdf:resource="http://www.example.org/sample-ontology-1.owl#King" />
+		<rdfs:label>Baron</rdfs:label>
+	</owl:Class>
+	<owl:Class rdf:ID="Rex">
+		<rdfs:subClassOf rdf:resource="http://www.example.org/sample-ontology-1.owl#Imperator" />
+		<rdfs:label>Imperator</rdfs:label>
+	</owl:Class>
+
+	<owl:Class rdf:ID="Knight">
+		<rdfs:subClassOf rdf:resource="http://www.example.org/sample-ontology-1.owl#Baron" />
+		<rdfs:label>Knight</rdfs:label>
+	</owl:Class>
+	<owl:Class rdf:ID="Dux">
+		<rdfs:subClassOf rdf:resource="http://www.example.org/sample-ontology-1.owl#Rex" />
+		<rdfs:label>Dux</rdfs:label>
+	</owl:Class>
+	
+</rdf:RDF>
+----
+
 == Classifiers
 Classifiers are a lot like keywords or tags except that they are hierarchical.
 
@@ -81,15 +141,204 @@ Every relationship has a name and a target artifact.
 
  For example, a client might define a relationship named "documentedBy" between a wsdl artifact and a text or PDF artifact, indicating that the latter provides documentation for the former.
 
+== S-RAMP Data models (from the standard)
+The S-RAMP specification defines a number of built-in artifact types, while also allowing clients to define their own (implicit) types. 
+
+An artifact may have document (e.g file) content or it may be a purely logical artifact, and every artifact may have properties associated to the artifact.
+
+Additionally, some document style artifact types when added to the repository, will result in the creation of a set of "derived" artifacts, and it may create relationships with other artifacts. 
+
+For example, if an XSD document is added to the repository, the server will automatically extract the element declarations from the content of the file resulting in a set of additional artifacts "related" to the original)
+
+The S-RAMP core model defines some basic artifact types:
+
+* *Document* (Properties: contentType, contentSize, contentHash)
+** *XmlDocument* (Properties: contentEncoding)
+*** *XsdDocument* (Properties: targetNamespace)
+**** AttributeDeclaration (Properties: ncName, namespace)
+**** ElementDeclaration (Properties: ncName, namespace)
+**** SimpleTypeDeclaration (Properties: ncName, namespace)
+**** ComplexTypeDeclaration (Properties: ncName, namespace)
+*** *WsdlDocument*
+**** WsdlService
+**** Port
+**** WsdlExtension
+**** Part
+**** Message
+**** Fault
+**** PortType
+**** Operation
+**** OperationInput
+**** OperationOutput
+**** Binding
+**** BindingOperation
+**** BindingOperationInput
+**** BindingOperationOutput
+**** BindingOperationFault
+*** *PolicyDocument* (For WS-Policy)
+**** PolicyExpression
+**** PolicyAttachment
+* *ExtendedDocument* (For extension)
+** *WebXmlDocument*
+** *ExtendedArtifactType*
+*** ServletFilter
+*** Servlet
+** (Additionally anything seen as user extension, e.g: PdfDocument)
+** *JavaArchive* (*.jar)
+** *JavaWebApplication* (*.war)
+** *JavaEnterpriseApplication* (*.ear)
+** *BeanArchiveDescriptor* (beans.xml)
+** *JavaClass* (*.class)
+** *JavaInterface* (*.class)
+** *JavaEnum* (*.class)
+** *KieJarArchive* (*.jar)
+** *KieXmlDocument* (kmodule.xml)
+** *BpmnDocument* (*.bpmn)
+** *DroolDocument* (*.drl)
+** *SwitchYardApplication*
+** *SwitchYardXmlDocument* (The derived types will have relations with other artifact types)
+*** SwitchYardService
+*** SwitchYardComponent
+*** SwitchYardComponentService
+*** SwitchYardTransformer
+*** SwitchYardValidator
+** *TeiidVdb*
+*** TeiidModel
+*** TeiidVdbConfigInfo
+*** Teiid....
+
+See: http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_s_ramp_data_models.html
+
+== S-RAMP Query language (from the standard)
+Another key aspect of the S-RAMP specification is the query language it defines, which allows clients to find artifacts by various criteria.
+
+The S-RAMP query language is a subset of the XPath 2.0 language, designed specifically to find and select S-RAMP artifacts.
+
+The query language allows clients to find artifacts based on any of the artifact meta-data, including:
+
+* Core Properties
+* Custom Properties
+* Classifiers
+* Relationships
+
+The basic structure of a typical S-RAMP query looks like this:
+
+[source,xml]
+----
+/s-ramp/<artifactModel>/<artifactType>[ <artifact-predicate> ]/relationship[ <target-artifact-predicate> ]
+----
+
+Not all of the components of the above query are required.
+
+== S-RAMP Sample Queries
+
+[options="header"]
+|====
+|Query|What It Selects
+|/s-ramp|All artifacts.
+|/s-ramp/core|All Core Model artifacts.
+|/s-ramp/xsd/XsdDocument|All XsdDocument artifacts.
+|/s-ramp/xsd/XsdDocument[@my-prop]|All XsdDocument artifacts that have the custom property my-prop defined (with any value).
+|/s-ramp/xsd/XsdDocument[@name='core.xsd']|XsdDocument artifacts named core.xsd.
+|/s-ramp/xsd/XsdDocument[@name='core.xsd' and @version='1.0']|XsdDocument artifacts named core.xsd and versioned as 1.0.
+|/s-ramp/soa[@myCustomProperty='foo']|SOA artifacts with a custom property named myCustomProperty that has value foo.
+|/s-ramp/core[classifiedByAnyOf(., 'Maine', 'Alaska')]|Core artifacts classified by either Maine or Alaska (presumably from the Regions ontology).
+|/s-ramp/wsdl/PortType[@name='OrderServicePT']/operation|Artifacts related to any PortType artifact named OrderServicePT via a relationship named operation. (This effectively returns all of the order service port type’s operations)
+|/s-ramp/ext/ServletFilter[relatedDocument[@uuid='12345']]|All servlet filter artifacts derived from (i.e. contain a relatedDocument relationship to) an artifact with UUID 12345.
+|/s-ramp/wsdl/Message[xp2:matches(.,'get.*')]/part[element]|Element style WSDL parts from WSDL messages with names starting with get.
+|====
+
+== S-RAMP Rest API (from the standard)
+The intent of the S-RAMP specification is to outline a data model and protocol designed to define how a repository should store and manipulate artifacts.
+
+The foundation document defines the former, while various protocol binding documents define the latter.
+
+Version 1 of the S-RAMP specification includes a single, Atom based protocol binding.
+
+The S-RAMP specification does not dictate the format of the Atom REST endpoints. Instead, the client is expected to query a service document endpoint and inspect it to find the various relevant endpoints. The specification does present a notional format, but implementations are not required to follow it. 
+
+Examples:
+
+[source,s-ramp]
+----
+GET /s-ramp/servicedocument
+POST /s-ramp/{model}/{type}
+PUT /s-ramp/{model}/{type}/{uuid}
+DELETE /s-ramp/{model}/{type}/{uuid}
+----
+
+== TIP Creating a custom Deriver
+Part of the S-RAMP specification is the concept of Derived content. This happens when an artifact of a certain type is added to the S-RAMP repository. The server is responsible for creating relevant and interesting Derived Artifacts from it.
+
+The Overlord S-RAMP implementation includes Artifact Derivers for all of the logical models defined by the S-RAMP specification (e.g. WSDL, XSD, Policy).
+
+It also provides a mechanism that allows users to provide Artifact Derivers for their own artifact types. This is done by performing the following steps:
+
+* Write a custom Deriver Java class - it must implement *ArtifactDeriver*
+* Create a DeriverProvider (a class that implements *DeriverProvider*) - used to map artifact types to implementations of ArtifactDeriver
+* Provide a text file named *org.overlord.sramp.common.derived.DeriverProvider* in the following location: *META-INF/services*. The content of that file should simply be one line containing the fully qualified classname of the DeriverProvided defined.
+* Package everything up into a JAR and make it available either on the classpath or in an external directory configured by setting property sramp.derivers.customDir.
+
+NOTE: The Overlord S-RAMP distribution comes with an example of how to write and package a custom deriver - the demo is named s-ramp-demos-custom-deriver.
+
+== Overlord S-RAMP Client
+The Overlord S-RAMP implementation provides a Java client library that can be used to integrate with S-RAMP compliant servers.
+
+[source,xml]
+----
+<dependency>
+   <groupId>org.overlord.sramp</groupId>
+   <artifactId>s-ramp-client</artifactId>
+   <version>${sramp.client.version}</version>
+</dependency>
+----
+
+Examples:
+[source,java]
+.Upload an XSD document to S-RAMP
+----
+SrampAtomApiClient client = new SrampAtomApiClient(urlToSramp);
+String artifactFileName = getXSDArtifactName();
+InputStream is = getXSDArtifactContentStream();
+ArtifactType type = ArtifactType.XsdDocument();
+BaseArtifactType artifact = client.uploadArtifact(ArtifactType.XsdDocument(), is, artifactFileName);
+----
+
+[source,java]
+.Create a custom artifact in S-RAMP (meta-data only, no file content)
+----
+SrampAtomApiClient client = new SrampAtomApiClient(urlToSramp);
+ExtendedArtifactType artifact = new ExtendedArtifactType();
+artifact.setArtifactType(BaseArtifactEnum.EXTENDED_ARTIFACT_TYPE);
+artifact.setExtendedType("MyArtifactType");
+artifact.setName("My Test Artifact #1");
+artifact.setDescription("Description of my test artifact.");
+BaseArtifactType createdArtifact = client.createArtifact(artifact);
+----
+
+NOTE: Although the S-RAMP specification is silent on how the API should support the management of ontologies, the Overlord S-RAMP implementation provides an extension to the Atom based REST API to support this. Using any of the client’s ontology related methods will work when communicating with the Overlord implementation of S-RAMP, but will likely fail when communicating with any other S-RAMP server.
+
+NOTE: A special feature of the client is the ability to automatically expand archive style artifacts (artifacts that are JARs, WARs, ZIPs, etc). This feature is similar to how the server creates Derived content. The result is that certain files from the archive being uploaded as an S-RAMP artifact are extracted from the archive and also uploaded to the server. When this happens these "expanded" artifacts are added with an S-RAMP relationship (expandedFromDocument) that points to the archive artifact they were expanded from.
+
+NOTE: Custom Expanders can be created
+
 == S-RAMP UI
+The Overlord S-RAMP project comes with a user interface that allows end users (or more likely business admins) to browse all of the artifacts in the S-RAMP repository.
+
+This UI is capable of viewing and manipulating all S-RAMP artifacts in a very generic way, supporting all aspects of the S-RAMP specification (properties, classifiers, relationships, etc).
+
 Available at: http://<server>:8080/s-ramp-ui
 
 image::overlord/dtgov/sramp/srampui.png[S-Ramp UI]
+
+Currently the S-RAMP Browser UI does not support any sort of fine grained authorization. The user must simply have the *overlorduser* role in order to log in and use the UI.
 
 == S-RAMP shell
 Available at: ${DTGOV_HOME}/bin/s-ramp.sh
 
 image::overlord/dtgov/sramp/sramp_shell.png[S-Ramp shell]
+
+See: http://docs.jboss.org/overlord/sramp/0.5.0/html/_overlord_s_ramp_command_line.html
 
 == S-RAMP users and roles
 There are several roles that the user must have in order to interact with the S-RAMP repository. These roles are as follows:
@@ -97,30 +346,183 @@ There are several roles that the user must have in order to interact with the S-
 * *overlorduser*: users must have this role in order to access the S-RAMP user interface (browser)
 * *admin.sramp*: users must have this role in order to access the S-RAMP repository (both read and write)
 
-== S-RAMP Data models (from the standard)
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_s_ramp_data_models.html
+== S-RAMP maven integration
+A key feature of the Overlord S-RAMP project is its integration with Maven. Currently there are several mechanisms provided to integrate with Maven. 
 
-== S-RAMP Query language (from the standard)
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_query_language.html
+* A custom S-RAMP Maven Wagon that adds support for the S-RAMP Atom based REST API protocol. 
+* An HTTP servlet which acts as a facade in front of the S-RAMP repository. 
+* A "maven" namespace in the S-RAMP Shell (CLI) providing integration between the CLI and Maven.
 
-== S-RAMP Rest API (from the standard)
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_s_ramp_rest_api.html
+The S-RAMP Maven Wagon can be used to upload deployable artifacts directly from Maven into a compliant S-RAMP repository. It allows a number of options including specifying the Artifact Type and creating an ArtifactGrouping. Additionally, artifacts from the S-RAMP repository can be used as dependencies in a Maven project.
 
-== Overlord S-RAMP implementation
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_implementation.html
+The S-RAMP Maven HTTP Facade currently allows only basic integration with Maven, but in a way that does not require the use of a custom Wagon in your pom.xml. The facade does not currently support the same set of optional features that the wagon implements. However, for relatively simple integrations it is a very easy solution to get working.
 
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_rest_api_endpoints.html
+== S-RAMP Maven Wagon
+Enable the maven wagon extension in your pom.xml
 
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_the_s_ramp_browser_ui.html
+[source,xml]
+----
+<build>
+  <extensions>
+    <extension>
+      <groupId>org.overlord.sramp</groupId>
+      <artifactId>s-ramp-wagon</artifactId>
+      <version>${s-ramp-wagon.version}</version>
+    </extension>
+  </extensions>
+</build>
+----
 
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_command_line.html
+Once the wagon is enabled, then URLs with a schema of "sramp" can be used in the pom.xml’s distributionManagement section.
 
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_maven_integration.html
+[source,xml]
+----
+<distributionManagement>
+  <repository>
+    <id>local-sramp-repo</id>
+    <name>S-RAMP Releases Repository</name>
+    <url>sramp://localhost:8080/s-ramp-server/</url>
+  </repository>
+  <snapshotRepository>
+    <id>local-sramp-repo-snapshots</id>
+    <name>S-RAMP Snapshots Repository</name>
+    <url>sramp://localhost:8080/s-ramp-server/</url>
+  </snapshotRepository>
+</distributionManagement>
+----
 
-http://docs.jboss.org/overlord/sramp/0.5.0.Final/html/_overlord_s_ramp_server_configuration.html
+With these settings, maven deployments will be sent directly to the S-RAMP repository using the S-RAMP API.
+
+NOTE: artifacts will be added to the S-RAMP repository with an artifact type based on the maven type of the project.
+
+This behavior can be overridden by adding a query parameter to the repository URL in the pom.xml. For example:
+
+[source,xml]
+----
+<distributionManagement>
+  <repository>
+    <id>local-sramp-repo</id>
+    <name>S-RAMP Releases Repository</name>
+    <url>sramp://localhost:8080/s-ramp-server/?artifactType=SwitchYardApplication</url>
+  </repository>
+</distributionManagement>
+----
+
+Additionally (after enabling the wagon), artifacts from the S-RAMP repository can be used as dependencies in your maven project.
+
+First, the S-RAMP repository must be configured in the maven project as a maven repository. This can be done with the following markup in the pom.xml.
+[source,xml]
+----
+<repositories>
+  <repository>
+    <id>local-sramp-repo</id>
+    <name>Local S-RAMP Repository</name>
+    <url>sramp://localhost:8080/s-ramp-server</url>
+    <layout>default</layout>
+  </repository>
+</repositories>
+----
+
+Once the repository is configured, an S-RAMP artifact can be referenced as a dependency in two ways. First, if the artifact was added to S-RAMP using the maven integration to deploy it, then the artifact in S-RAMP will contain maven specific properties, allowing it to be referenced as a dependency using those maven specific properties. In this case, simply add the dependency as you normally would in a maven project.
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.overlord.sramp.wiki</groupId>
+  <artifactId>s-ramp-wiki-example</artifactId>
+  <version>1.0</version>
+</dependency>
+----
+
+However, even if an artifact was added to the S-RAMP repository in some other way (and therefore does not have any maven specific properties) it can be used as a dependency. In this case, you can reference the dependency by using its S-RAMP artifact model, type, and UUID. The model and type are used to make up a maven groupId, while the UUID becomes the maven artifactId. The version information is not used (but still required in the pom.xml).
+
+[source,xml]
+----
+<dependency>
+  <groupId>ext.JavaArchive</groupId>
+  <artifactId>8744-437487-4734525-382345-923424</artifactId>
+  <version>1.0</version>
+</dependency>
+----
+
+
+== S-RAMP Maven http servlet
+A less feature-rich (currently) but easier to configure maven integration option is the S-RAMP Maven HTTP facade. This HTTP servlet can be accessed (by default) from the following URL:
+
+[source,http]
+----
+http://localhost:8080/s-ramp-server/maven/repository
+----
+
+This URL can be treated as the root of a standard Maven repository both for deploying artifacts to the S-RAMP repository and also for getting artifacts back out again as dependencies. You can use standard Maven configuration of your "repositories" (for GETs) and "distributionManagement" (for PUTs) within your pom.xml. There is no need to configure a wagon or any other maven extension.
+
+An example configuration in your pom.xml for this mechanism might be:
+
+[source,xml]
+----
+  <repositories>
+    <repository>
+      <id>local-sramp-repo</id>
+      <name>Local S-RAMP Repository</name>
+      <url>http://localhost:8080/s-ramp-server/maven/repository</url>
+      <layout>default</layout>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>never</updatePolicy>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>local-sramp-repo</id>
+      <name>Local S-RAMP Releases Repository</name>
+      <url>http://localhost:8080/s-ramp-server/maven/repository</url>
+    </repository>
+    <snapshotRepository>
+      <id>local-sramp-repo-snapshots</id>
+      <name>Local S-RAMP Snapshots Repository</name>
+      <url>http://localhost:8080/s-ramp-server/maven/repository</url>
+    </snapshotRepository>
+  </distributionManagement>
+----
+
+Once this configuration is complete, you should be able to both deploy to the S-RAMP repository (requires authentication) and pull in dependencies from the S-RAMP repository (does not require authentication).
+
+== Maven integration authentication
+Whenever the S-RAMP Maven integration features are used, it is likely that you will need to provide valid authentication credentials. There are two available mechanisms to provide these credentials. First, you may provide the S-RAMP repository username and password in the Maven settings.xml file. If no credentials are found there, then you will be prompted to enter them when they are needed during the build.
+
+[source,xml]
+----
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <servers>
+    <server>
+      <id>local-sramp-repo</id>
+      <username>admin</username>
+      <password>ADMIN_PASSWORD</password>
+    </server>
+    <server>
+      <id>local-sramp-repo-snapshots</id>
+      <username>admin</username>
+      <password>ADMIN_PASSWORD</password>
+    </server>
+  </servers>
+</settings>
+----
+
+== Maven namespace in S-RAMP shell
+Another available mechanism for integrating with maven is the S-RAMP CLI’s "maven" command namespace.
+
+Using the maven CLI commands is often a good choice if you wish to incorporate maven related S-RAMP operations into a script of some kind.
 
 == How DTGov Works
-http://docs.jboss.org/overlord/dtgov/1.3.0.Final/html/_introduction_to_dtgov.html
 
 * Workflows are created from JBoss jBPM (BPMN2) process definitions.
 * A version of jBPM is embedded in the deployed dtgov.war. This version of jBPM is configured to use the S-RAMP repository as the source for workflow definitions.
@@ -130,24 +532,83 @@ http://docs.jboss.org/overlord/dtgov/1.3.0.Final/html/_introduction_to_dtgov.htm
 * Any human tasks that are used in any DTGov workflow will appear in the Tasks UI included in the DTGov UI (http://localhost:8080/dtgov-ui)
 * A workflow deployment only shows up in the dtgov-ui/#deployments page once a lifecycle management jBPM process is kicked off for it.
 
-== Define targets
+== The Sample Process Workflow: "SimpleReleaseProcess"
+A sample Process Workflow ("SimpleReleaseProcess") is packaged with DTGov.
 
-== Define ontologies
+OOTB SimpleReleaseProcess does "Lifecycle Management" governance on an artifact by monitoring the S-RAMP repository periodically (60 sec default) - this monitoring takes the form of a query on the repository.
 
-== Define workflows
+When an artifact matches that S-RAMP query as configured in the DTGov config file (dtgov.properties) which is mapped to the SimpleReleaseProcess a new jBPM process instance is created for that artifact. The process can do anything it wants at that point.
 
-== Deploy artifacts
+image::overlord/dtgov/SimpleReleaseProcess.png[SimpleReleaseProcess]
 
-== Govern
+== DTGov Data Model (In FSW 6.1+)
+DTGov makes use of the configured S-RAMP repository to store various internal objects as extension artifacts. All DTGov artifacts can be modified either via the DTGov UI or by directly manipulating them using standard S-RAMP tools.
 
-== DTGov
- * App building
- * life-cycle management
- * Deployment
- * Integrating the build/test/deployment process into a maven based build engine
+=== Notification Templates (DtgovEmailTemplate)
+The DTGov notification service uses templates when sending notifications to users. These templates can be stored in the S-RAMP repository and queried via:
 
-image::overlord/dtgov/soa_governance.png[SOA Governance]
+----
+/s-ramp/ext/DtgovEmailTemplate
+----
 
- TODO: Create this
+=== Undeployment Information (UndeploymentInformation)
+The DTGov deployment service stores some information about the deployment in the S-RAMP repository so that it is possible to later undeploy the deployment. A list of all these undeployment artifacts can be found via:
+
+----
+/s-ramp/ext/UndeploymentInformation
+----
+
+=== Workflow Queries (DtgovWorkflowQuery)
+A primary feature of DTGov is to watch the S-RAMP repository for changes and, when it detects them, trigger a new instance of a BPMN2 workflow for the artifact that caused the change. The DTGov UI provides a way to manage these queries - each one is stored in the S-RAMP repository as a DtgovWorkflowQuery, which can be quried with the following:
+
+----
+/s-ramp/ext/DtgovWorkflowQuery
+----
+
+=== Workflow Instances (DtgovWorkflowInstance)
+Whenever a workflow is triggered for an artifact in the S-RAMP repository (see the Workflow Queries section above), DTGov will add an artifact to S-RAMP that represents the workflow instance. This provides a way to easily track all of the workflow instances, their state, and which S-RAMP artifact they are governing. A list of these workflow instances can be queried using the following:
+
+----
+/s-ramp/ext/DtgovWorkflowInstance
+----
+
+=== Deployment Targets (DtgovDeploymentTarget)
+The DTGov deployment service is responsible for deploying an S-RAMP artifact (deployment) into a runtime environment such as JBoss EAP or Apache Tomcat. The service must be configured with at least one logical deployment target. This configuration information is managed via the DTGov user interface. Each deployment target is stored in the S-RAMP repository as a DeploymentTargetType. These target artifacts can be queries with the following:
+
+----
+/s-ramp/ext/DtgovDeploymentTarget
+----
+
+== Configuration in FSW 6
+In FSW all configuration of the DTGov data model is done in properties files.
+
+== Integration with human tasks
+Overlord: DTgov uses an embedded version of jBPM by default. However, human tasks can easily be included in Governance Workflows because the Task Inbox is integrated directly into the DTGov User Interface.
+
+Out of the box, Human Task functionality should work seamlessly. However, it is also possible to integrate a separate task system by providing an alternative (custom) Task API implementation.
+
+See: https://github.com/Governance/dtgov/wiki/GuideHumanTasks
+
+== Notification Service
+The Notification Service is a service included by DTGov to make it easy to send out email notifications to users directly from the workflow. However, it can easily be used to send email notifications by any client that can perform a simple REST API call.
+
+See: https://github.com/Governance/dtgov/wiki/GuideNotifications
+
+
+== Deployments
+One of the most useful services provided by the Overlord: DTGov system is the Deployment Service. This is a service that makes it possible to deploy a binary artifact stored in the S-RAMP repository into a target runtime environment such as JBoss EAP. This Deployment Service can easily be invoked from a Governance Workflow and is often included as part of a Deployment Lifecycle business process.
+
+== Create your custom Governance process
+
+=== Define targets
+
+=== Define ontologies
+
+=== Define workflows
+
+=== Deploy artifacts
+
+=== Govern
+
 
 // vim: set syntax=asciidoc:
