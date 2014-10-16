@@ -1,0 +1,162 @@
+= SwitchYard - File copy Streaming
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:description: SwitchYard
+:revdate: 2014-10-10
+:revnumber: 0.1
+:icons: font
+:imagesdir: ./images
+:figure-caption!:
+:deckjs_theme: web-2.0
+:scrollable:
+
+== Description 
+While copying files from one place to another we sometimes face performance problems, and as the file gets bigger more problems, even OutofMemoryExceptions. 
+These problems can be related to how we transfer files in SwitchYard, and if we do conversions of the files.
+
+Here there is an explanation of the different ways to transfer a file, in streaming mode, or as a String.
+
+== Project
+https://github.com/jorgemoralespou/fsw-demo/tree/master/file-streaming[Available in github]
+
+This project demonstrates how to copy files as stream or as a String.
+
+- I have used ESB interfaces, an used java.io.InputStream as input param for the copy files as stream.
+- I have used ESB interfaces, an used java.lang.String as input param for the copy files as string.
+
+You can manage where to do conversion by having the left side as InputStream and right side as String, so you can convert at the ServiceHandler, at the Exchange (implicit transformers).
+
+In the attached project drop a file called *test.txt* in */input*. It will get copied in Streaming mode to */output*.
+In the attached project drop a file called *string.txt* in */input*. It will get copied in String mode to */output*.
+
+NOTE: If using big files, copy the file with another name, and then mv it to the correct name, as otherwise copy will be happening not for the 
+
+NOTE: If modifying the source, adapt source and destinations folders and filenames
+
+== Results
+
+=== 1 KB message
+
+As Stream:
+----
+13:50:23,222 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #15 - file:///input) Total 1 files to consume
+13:50:23,222 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #15 - file:///input) About to process file: GenericFile[/input/test.txt] using exchange: Exchange[test.txt]
+13:50:23,224 DEBUG [org.apache.camel.component.file.GenericFileConverter] (Camel (camel-15) thread #15 - file:///input) Read file /input/test.txt (no charset)
+13:50:23,231 DEBUG [org.apache.camel.component.file.FileOperations] (Camel (camel-15) thread #15 - file:///input) Using InputStream to write file: /output/ID-b64fd2f46bfd-46028-1412943213101-14-60
+13:50:23,232 DEBUG [org.apache.camel.component.file.GenericFileProducer] (Camel (camel-15) thread #15 - file:///input) Wrote [/output/ID-b64fd2f46bfd-46028-1412943213101-14-60] to [Endpoint[file:///output]]
+13:50:23,234 DEBUG [org.apache.camel.component.file.GenericFileOnCompletion] (Camel (camel-15) thread #15 - file:///input) Done processing file: GenericFile[/input/test.txt] using exchange: Exchange[null]
+13:50:23,275 DEBUG [org.apache.camel.component.file.strategy.GenericFileRenameProcessStrategy] (Camel (camel-15) thread #15 - file:///input) Renaming file:
+GenericFile[/input/test.txt] to: GenericFile[/input/.camel/test.txt]
+----
+
+
+As String:
+----
+13:50:46,976 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #16 - file:///input) Total 1 files to consume
+13:50:46,976 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #16 - file:///input) About to process file: GenericFile[/input/string.txt] using exchange: Exchange[string.txt]
+13:50:46,977 DEBUG [org.apache.camel.component.file.GenericFileConverter] (Camel (camel-15) thread #16 - file:///input) Read file /input/string.txt (no charset)
+13:50:46,983 DEBUG [org.apache.camel.component.file.FileOperations] (Camel (camel-15) thread #16 - file:///input) Using InputStream to write file: /output/ID-b64fd2f46bfd-46028-1412943213101-14-70
+13:50:46,984 DEBUG [org.apache.camel.component.file.GenericFileProducer] (Camel (camel-15) thread #16 - file:///input) Wrote [/output/ID-b64fd2f46bfd-46028-1412943213101-14-70] to [Endpoint[file:///output]]
+13:50:46,986 DEBUG [org.apache.camel.component.file.GenericFileOnCompletion] (Camel (camel-15) thread #16 - file:///input) Done processing file: GenericFile[/input/string.txt] using exchange: Exchange[null]
+13:50:46,987 DEBUG [org.apache.camel.component.file.strategy.GenericFileRenameProcessStrategy] (Camel (camel-15) thread #16 - file:///input) Renaming file:
+GenericFile[/input/string.txt] to: GenericFile[/input/.camel/string.txt]
+----
+
+There is no significative difference.
+
+=== 400 MB file
+
+As Stream:
+----
+13:52:58,301 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #15 - file:///input) Total 1 files to consume
+13:52:58,302 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #15 - file:///input) About to process file: GenericFile[/input/test.txt] using exchange: Exchange[test.txt]
+13:52:58,304 DEBUG [org.apache.camel.component.file.GenericFileConverter] (Camel (camel-15) thread #15 - file:///input) Read file /input/test.txt (no charset)
+13:52:58,311 DEBUG [org.apache.camel.component.file.FileOperations] (Camel (camel-15) thread #15 - file:///input) Using InputStream to write file: /output/ID-b64fd2f46bfd-46028-1412943213101-14-80
+13:52:58,526 DEBUG [org.apache.camel.component.file.GenericFileProducer] (Camel (camel-15) thread #15 - file:///input) Wrote [/output/ID-b64fd2f46bfd-46028-1412943213101-14-80] to [Endpoint[file:///output]]
+13:52:58,528 DEBUG [org.apache.camel.component.file.GenericFileOnCompletion] (Camel (camel-15) thread #15 - file:///input) Done processing file: GenericFile[/input/test.txt] using exchange: Exchange[null]
+13:52:58,528 DEBUG [org.apache.camel.component.file.strategy.GenericFileRenameProcessStrategy] (Camel (camel-15) thread #15 - file:///input) Renaming file:
+GenericFile[/input/test.txt] to: GenericFile[/input/.camel/test.txt]
+----
+
+
+As String:
+----
+13:53:42,017 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #16 - file:///input) Total 1 files to consume
+13:53:42,017 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #16 - file:///input) About to process file: GenericFile[/input/string.txt] using exchange: Exchange[string.txt]
+13:53:42,019 DEBUG [org.apache.camel.component.file.GenericFileConverter] (Camel (camel-15) thread #16 - file:///input) Read file /input/string.txt (no charset)
+13:53:43,535 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #15 - file:///input) Took 0.000 seconds to poll: /input
+13:53:48,535 DEBUG [org.apache.camel.component.file.FileConsumer] (Camel (camel-15) thread #15 - file:///input) Took 0.000 seconds to poll: /input
+13:53:51,794 ERROR [org.apache.camel.processor.DefaultErrorHandler] (Camel (camel-15) thread #16 - file:///input) Failed delivery for (MessageId: ID-b64fd2f46bfd-46028-1412943213101-14-83 on ExchangeId: ID-b64fd2f46bfd-46028-1412943213101-14-84). Exhausted after delivery attempt: 1 caught: org.apache.camel.TypeConversionException: Error during type conversion from type: org.apache.camel.component.file.GenericFile to the required type: java.lang.String with value GenericFile[/input/string.txt] due java.lang.OutOfMemoryError: Java heap space: org.apache.camel.TypeConversionException: Error during type conversion from type: org.apache.camel.component.file.GenericFile to the required type: java.lang.String with value GenericFile[/input/string.txt] due java.lang.OutOfMemoryError: Java heap space
+	at org.apache.camel.impl.converter.BaseTypeConverterRegistry.convertTo(BaseTypeConverterRegistry.java:126) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.impl.MessageSupport.getBody(MessageSupport.java:72) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.impl.MessageSupport.getBody(MessageSupport.java:47) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.switchyard.component.camel.common.composer.CamelMessageComposer.compose(CamelMessageComposer.java:62) [switchyard-component-common-camel-1.1.1-p7-redhat-1.jar:1.1.1-p7-redhat-1]
+	at org.switchyard.component.camel.common.composer.CamelMessageComposer.compose(CamelMessageComposer.java:42) [switchyard-component-common-camel-1.1.1-p7-redhat-1.jar:1.1.1-p7-redhat-1]
+	at org.switchyard.component.camel.SwitchYardProducer.composeForGateway(SwitchYardProducer.java:136) [switchyard-component-camel-switchyard-1.1.1-p7-redhat-1.jar:1.1.1-p7-redhat-1]
+	at org.switchyard.component.camel.SwitchYardProducer.process(SwitchYardProducer.java:104) [switchyard-component-camel-switchyard-1.1.1-p7-redhat-1.jar:1.1.1-p7-redhat-1]
+	at org.apache.camel.util.AsyncProcessorConverterHelper$ProcessorToAsyncProcessorBridge.process(AsyncProcessorConverterHelper.java:61) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.util.AsyncProcessorHelper.process(AsyncProcessorHelper.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.SendProcessor$2.doInAsyncProducer(SendProcessor.java:122) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.impl.ProducerCache.doInAsyncProducer(ProducerCache.java:298) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.SendProcessor.process(SendProcessor.java:117) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.util.AsyncProcessorHelper.process(AsyncProcessorHelper.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.processNext(DelegateAsyncProcessor.java:99) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.process(DelegateAsyncProcessor.java:90) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.management.InstrumentationProcessor.process(InstrumentationProcessor.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.util.AsyncProcessorHelper.process(AsyncProcessorHelper.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.processNext(DelegateAsyncProcessor.java:99) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.process(DelegateAsyncProcessor.java:90) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.interceptor.TraceInterceptor.process(TraceInterceptor.java:91) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.util.AsyncProcessorHelper.process(AsyncProcessorHelper.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.processNext(DelegateAsyncProcessor.java:99) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.process(DelegateAsyncProcessor.java:90) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.fabric.FabricTraceProcessor.process(FabricTraceProcessor.java:81) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.util.AsyncProcessorHelper.process(AsyncProcessorHelper.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.processNext(DelegateAsyncProcessor.java:99) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.process(DelegateAsyncProcessor.java:90) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.util.AsyncProcessorHelper.process(AsyncProcessorHelper.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.RedeliveryErrorHandler.processErrorHandler(RedeliveryErrorHandler.java:334) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.RedeliveryErrorHandler.process(RedeliveryErrorHandler.java:220) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.RouteContextProcessor.processNext(RouteContextProcessor.java:46) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.process(DelegateAsyncProcessor.java:90) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.interceptor.DefaultChannel.process(DefaultChannel.java:308) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.util.AsyncProcessorHelper.process(AsyncProcessorHelper.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.Pipeline.process(Pipeline.java:117) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.Pipeline.process(Pipeline.java:80) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.RouteContextProcessor.processNext(RouteContextProcessor.java:46) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.process(DelegateAsyncProcessor.java:90) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.UnitOfWorkProcessor.processAsync(UnitOfWorkProcessor.java:150) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.UnitOfWorkProcessor.process(UnitOfWorkProcessor.java:117) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.RouteInflightRepositoryProcessor.processNext(RouteInflightRepositoryProcessor.java:48) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.process(DelegateAsyncProcessor.java:90) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.util.AsyncProcessorHelper.process(AsyncProcessorHelper.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.processNext(DelegateAsyncProcessor.java:99) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.processor.DelegateAsyncProcessor.process(DelegateAsyncProcessor.java:90) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.management.InstrumentationProcessor.process(InstrumentationProcessor.java:73) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.component.file.GenericFileConsumer.processExchange(GenericFileConsumer.java:336) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.component.file.GenericFileConsumer.processBatch(GenericFileConsumer.java:189) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.component.file.GenericFileConsumer.poll(GenericFileConsumer.java:155) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.impl.ScheduledPollConsumer.doRun(ScheduledPollConsumer.java:142) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.impl.ScheduledPollConsumer.run(ScheduledPollConsumer.java:92) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471) [rt.jar:1.7.0_65]
+	at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:304) [rt.jar:1.7.0_65]
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$301(ScheduledThreadPoolExecutor.java:178) [rt.jar:1.7.0_65]
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:293) [rt.jar:1.7.0_65]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) [rt.jar:1.7.0_65]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) [rt.jar:1.7.0_65]
+	at java.lang.Thread.run(Thread.java:745) [rt.jar:1.7.0_65]
+Caused by: org.apache.camel.RuntimeCamelException: java.lang.OutOfMemoryError: Java heap space
+	at org.apache.camel.util.ObjectHelper.wrapRuntimeCamelException(ObjectHelper.java:1326) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.util.ObjectHelper.invokeMethod(ObjectHelper.java:972) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.impl.converter.StaticMethodTypeConverter.convertTo(StaticMethodTypeConverter.java:47) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.impl.converter.BaseTypeConverterRegistry.doConvertTo(BaseTypeConverterRegistry.java:253) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	at org.apache.camel.impl.converter.BaseTypeConverterRegistry.convertTo(BaseTypeConverterRegistry.java:111) [camel-core-2.10.0.redhat-60061.jar:2.10.0.redhat-60061]
+	... 57 more
+Caused by: java.lang.OutOfMemoryError: Java heap space
+
+13:53:51,796 DEBUG [org.apache.camel.component.file.GenericFileOnCompletion] (Camel (camel-15) thread #16 - file:///input) Done processing file: GenericFile[/input/string.txt] using exchange: Exchange[null]
+13:53:51,796 WARN  [org.apache.camel.component.file.GenericFileOnCompletion] (Camel (camel-15) thread #16 - file:///input) Rollback file strategy: org.apache.camel.component.file.strategy.GenericFileRenameProcessStrategy@164d2158 for file: GenericFile[/input/string.txt]
+----
+
+
+NOTE: As you can see, streaming is recommended for big files. So be careful whatever you do in an Streaming file copy with the message content, as any log, transformation,... can convert it to String and give an OOME.
