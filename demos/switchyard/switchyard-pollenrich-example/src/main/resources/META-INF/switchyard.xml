@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sy:switchyard xmlns:camel="urn:switchyard-component-camel:config:1.1" xmlns:file="urn:switchyard-component-camel-file:config:1.1" xmlns:quartz="urn:switchyard-component-camel-quartz:config:1.1" xmlns:sca="http://docs.oasis-open.org/ns/opencsa/sca/200912" xmlns:sy="urn:switchyard-config:switchyard:1.1" name="switchyard-pollenrich-example" targetNamespace="urn:com.example.switchyard:switchyard-pollenrich-example:1.0">
+  <sca:composite name="switchyard-pollenrich-example" targetNamespace="urn:com.example.switchyard:switchyard-pollenrich-example:1.0">
+    <sca:component name="CamelServiceRoute">
+      <camel:implementation.camel>
+        <camel:java class="com.example.switchyard.switchyard_pollenrich_example.CamelServiceRoute"/>
+      </camel:implementation.camel>
+      <sca:service name="ProgramaticReload">
+        <sca:interface.java interface="com.example.switchyard.switchyard_pollenrich_example.Reload"/>
+      </sca:service>
+      <sca:reference name="FileWriterService">
+        <sy:interface.esb inputType="java:java.lang.String"/>
+      </sca:reference>
+    </sca:component>
+    <sca:service name="ProgramaticReload" promote="CamelServiceRoute/ProgramaticReload">
+      <sca:interface.java interface="com.example.switchyard.switchyard_pollenrich_example.Reload"/>
+      <quartz:binding.quartz name="switchyard-pollenrich-example">
+        <quartz:name>switchyard-pollenrich-example</quartz:name>
+        <quartz:cron>30 * * * * ?</quartz:cron>
+      </quartz:binding.quartz>
+    </sca:service>
+    <sca:reference name="FileWriterService" multiplicity="0..1" promote="CamelServiceRoute/FileWriterService">
+      <sy:interface.esb inputType="java:java.lang.String"/>
+      <file:binding.file name="file1">
+        <file:directory>/output</file:directory>
+        <file:fileName>out.txt</file:fileName>
+        <file:produce/>
+      </file:binding.file>
+    </sca:reference>
+  </sca:composite>
+</sy:switchyard>
