@@ -1,0 +1,55 @@
+= Switchyard Tips - pollEnrich
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:revdate: 16/10/2014
+:revnumber: 0.1
+:description: Switchyard Tips - pollEnrich
+:toc2:
+:toclevels: 4
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+:figure-caption!:
+
+
+== How to read a file programatically
+I've been asked recently how to read a file programatically, based on a cron, or when a request is made via a call to a Service.
+I didn't have an answer, well, really I had an answer and I was wrong. Today, somebody brought the topic back, and I revisited the
+problem, and now I have an answer, one that works, so a good answer.
+
+== Problem description
+I have the following use case: 
+
+A file should be downloaded by FTP from a remote server. The download of the file can be triggered in two ways:
+
+* by a scheduler whose polling interval may be changed at runtime
+* by a HTTP GET Request on a specified url. The response of the HTTP call must include transformed data based on the downloaded file.
+ 
+What is a good way to achieve these requirements with SY/Camel? I would like to use the bindings provided by Camel, but have no idea how they can be triggered (e.g. the FTP binding) from outside the binding.
+
+== Solution
+I have created a sample project, just to demonstrate how it works, not the full problem is solved. You have to use the http://camel.apache.org/content-enricher.html[content ennricher EIP].
+
+image::pollEnrich/DataEnricher.gif[Data Enricher EIP]
+
+We have a service, with a scheduled binding (Every 30 secs) that calls a Camel component. In this component, we use pollEnrich to read a file, and the use the contents of the 
+file (the Message) to write into a File (a Reference with file binding).
+
+image::pollEnrich/application.png[Data Enricher EIP]
+
+This is the route we will be using. *Note the pollEnrich to read the file.*
+
+[source,java]
+----
+	public void configure() {
+		from("switchyard://ProgramaticReload")
+		.log("Going to read the file")
+		.pollEnrich("file:///input?fileName=in.txt",1000)
+		.log("Received message for 'ProgramaticReload' : ${body}")
+		.to("switchyard://FileWriterService");
+	}
+----
+
+NOTE: The project is available in https://github.com/jorgemoralespou/fsw-documentation/tree/master/demos/switchyard/switchyard-pollenrich-example[github]
+
+// vim: set syntax=asciidoc:
