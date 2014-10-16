@@ -1,0 +1,287 @@
+= SwitchYard in Docker
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:revdate: 2014-10-08
+:revnumber: 0.1
+:description: SwitchYard in Docker
+:toc2:
+:toclevels: 4
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+:figure-caption!:
+
+== Introduction
+Now that there is an official docker image for SwitchYard, I'm going to explain some usages of this image to make you productive with docker and SwitchYard.
+This way, you'll be able to have reproducible environments for:
+
+* development
+* demos
+* support/bug hunting
+* integration / testing
+
+Let's get us started:
+
+== SwitchYard docker official image
+The official images, are maintained by Red Hat, and are published to the docker hub. You can browse the https://github.com/jboss-dockerfiles/switchyard[source code for the images]. 
+Currently there is only support for SwitchYard on Wildfly. Of course, on the https://github.com/jboss-dockerfiles/wildfly[official Wildfly image], also supported by Red Hat.
+
+All of the JBoss community projects that have a docker image, are published in the http://www.jboss.org/docker/[official docker community site]. From there, 
+you can link to the individual projects. As I'm going to talk about SwitchYard, let's see what's there:
+
+* https://registry.hub.docker.com/u/jboss/switchyard-wildfly/[Docker hub]
+* https://github.com/jboss/dockerfiles/blob/master/switchyard/switchyard-wildfly/Dockerfile[Dockerfile]
+* https://github.com/jboss-dockerfiles/switchyard/blob/master/switchyard-wildfly/README.md[README]
+
+== Get started
+In order to get you started you just need to download the image
+
+----
+docker pull jboss/switchyard-wildfly
+----
+
+and create a container
+
+----
+docker run -it jboss/switchyard-wildfly
+---- 
+
+or in domain mode
+
+----
+docker run -it jboss/switchyard-wildfly /opt/jboss/wildfly/bin/domain.sh -b 0.0.0.0 -bmanagement 0.0.0.0   
+----
+
+You'll see that the base SwitchYard docker container is not so useful (doesn't have an admin user), so the best thing to do, is to extend it.
+
+== Extending the SwitchYard container
+First thing you need to know is what you want the container for, so let's see some sample uses:
+
+=== Development
+In this use case, what you want is a container where to deploy your applications, those that you are developing, so it can be useful to have:
+
+* An admin user created
+* Debug port exposed
+* Binding to all interfaces, so you can access without forwarding (if required)
+* Some volumes to access your information in the container
+* Some volumes (to test file services)
+
+Let's create a container for this:
+
+.Dockerfile
+----
+FROM jboss/switchyard-wildfly
+
+#
+# Add admin user
+RUN /opt/wildfly/bin/add-user.sh admin admin123! --silent
+
+#
+# Enable port for debugging with --debug
+EXPOSE 8787
+
+#
+# Volumes
+VOLUME /input
+VOLUME /output
+
+# Enable binding to all network interfaces and debugging inside the server
+RUN echo "JAVA_OPTS=\"\$JAVA_OPTS -Djboss.bind.address=0.0.0.0 -Djboss.bind.address.management=0.0.0.0\"" >> ${JBOSS_HOME}/bin/standalone.conf
+
+ENTRYPOINT ["/opt/wildfly/bin/standalone.sh"]
+CMD []
+----
+
+I'm going to explain each and every command:
+
+. *FROM jboss/switchyard-wildfly*, this is the base image, so we are reusing everything in there (jboss user, EAP_HOME set, and more. See https://github.com/jboss-dockerfiles/switchyard/blob/master/switchyard-wildfly/README.md[doc] for reference)
+
+. *RUN /opt/wildfly/bin/add-user.sh admin admin123! --silent*, this creates and admin user with _admin123!_ as password.
+
+. *EXPOSE 8787* adds debug port exposure (8787 is the default one in wildfly.
+
+. *VOLUME /input*, *VOLUME /output* adds two volumes to the image, so we can easily acces or export this volumes if needed. They are very handy when developing file services, as we will see when we run the container.
+
+. *RUN echo "JAVA_OPTS=\"\$JAVA_OPTS -Djboss.bind.address=0.0.0.0 -Djboss.bind.address.management=0.0.0.0\"" >> ${JBOSS_HOME}/bin/standalone.conf* this adds default binding to any interface (by default only 127.0.0.1) so we can access the server via the ip or name.
+
+. *ENTRYPOINT ["/opt/wildfly/bin/standalone.sh"]* defines default command to be executed. I like to set the command here as this image will be single purpose, so no need to be able to switch (although it is possible with --entrypoint on command line).
+
+. *CMD []* this is the arguments to the entrypoint, none by default, but it allows you to set on command line things like _"--debug"_ to enable debugging mode in the container.
+
+Now it is time to build the image:
+----
+docker build -t "jmorales/switchyard-dev" .
+----
+
+NOTE: You can name the image as you like, as this image will be yours. Just need to think that has to have meaningul name so it is easy to remember when used.
+
+Let's now go to run the image:
+----
+docker run -it jmorales/switchyard-dev
+----
+
+This is the simplest command to run the container, but we are not using many of the power we have provided to it, so, let's make a better command:
+----
+docker run -it -name "switchyard" -p 8080:8080 -p 9990:9990 jmorales/switchyard-dev
+----
+
+Now we can http://localhost:9990/console[access the console] with the admin/admin123! user that we have created.
+
+Still not there yet. We need to be able to use file services (remember that in the container the directories will be /input and /output) and we want to debug in the container from the JBDS.
+----
+docker run -it -name "switchyard" -v /tmp/input:/input -v /tmp/output:/output -p 8080:8080 -p 9990:9990 -p 8787:8787 jmorales/switchyard-dev --debug
+----
+
+And even maybe use a different profile
+----
+docker run -it -name "switchyard" -v /tmp/input:/input -v /tmp/output:/output -p 8080:8080 -p 9990:9990 -p 8787:8787 jmorales/switchyard-dev --debug -c standalone-full.xml
+----
+
+Important things to note here:
+
+* The image is run in foreground, so we will be viewing the console log. Control-c will stop the container. Since we have the container created, if we want to execute it again, it is just a:
+----
+docker start switchyard
+----
+* If you want a disposable container, you can add *--rm* option to the command line, and every time you stop the container it will be removed. (This option is more useful on other use cases).
+* If you always work with some options, you can just add them to your DOckerfile and create your image with these options, so no need to type them when creating the container (like the profile, --debug, ..) 
+
+
+Of course, this line is very long, and difficult to remember, so we can create a simple alias:
+----
+alias docker_switchyard_create="docker run -it -name "switchyard" -v /tmp/input:/input -v /tmp/output:/output -p 8080:8080 -p 9990:9990 -p 8787:8787 jmorales/switchyard-dev --debug -c standalone-full.xml"
+alias docker_switchyard_start="docker start switchyard"
+----
+
+Once you are done, you can just delete this container. If you want a fresh instance, or just not working on it anymore:
+----
+docker rm -vf switchyard
+----
+
+NOTE: It is important to delete the volumes if the container has volumes (with the -v) as otherwise this volumes will remain in your docker internal filesystem.
+
+=== Demos
+The demo use case is somehow different as you'll probably have some application developed that you want to have in acontainer ready to start, so the container for demos will be an extension of
+the previous one, adding the application/configruation that you want.
+
+----
+FROM jboss/switchyard-wildfly
+
+#
+# Add admin user
+RUN /opt/wildfly/bin/add-user.sh admin admin123! --silent
+
+#
+# Volumes
+VOLUME /input
+VOLUME /output
+
+# Enable binding to all network interfaces and debugging inside the server
+RUN echo "JAVA_OPTS=\"\$JAVA_OPTS -Djboss.bind.address=0.0.0.0 -Djboss.bind.address.management=0.0.0.0\"" >> ${JBOSS_HOME}/bin/standalone.conf
+
+ADD myapp.war $EAP_HOME/standalone/deployments/
+ADD standalone.xml $EAP_HOME/standalone/configuration/
+
+ENTRYPOINT ["/opt/wildfly/bin/standalone.sh"]
+CMD []
+----
+
+This example above has 3 main differences with the development one:
+
+* It removes the exposure of the debug port (not really neccesary)
+* It adds an application to the deployments dir *ADD myapp.war $EAP_HOME/standalone/deployments/*. This app has to be on the same directory as the Dockerfile
+* It adds some configuration to the server *ADD standalone.xml $EAP_HOME/standalone/configuration/*. 
+https://goldmann.pl/blog/2014/07/23/customizing-the-configuration-of-the-wildfly-docker-image/[There are many ways to customize the configuration of your wildfly/EAP image], but this is one of the simplest.
+
+And of course, if you had your image from the development use case created, you can just simply extend it.
+----
+FROM jmorales/jmorales/switchyard-dev
+
+#
+# Add customizations 
+ADD myapp.war $EAP_HOME/standalone/deployments/
+ADD standalone.xml $EAP_HOME/standalone/configuration/
+----
+
+Now, time to build your image:
+----
+docker build -t "jmorales/myapp-demo" .
+----
+
+And to run it
+----
+docker run -it --rm -v /tmp/input:/input -v /tmp/output:/output -p 8080:8080 -p 9990:9990 jmorales/myapp-demo
+----
+
+NOTE: This time I've added *--rm* to the command line, so when I stop the container, it gets deleted. 
+As this is a demo with everything there, if I need to do it again, just run the container with the same run command line.
+
+=== Support
+The support use case is for somebody to make the environment reproducible, so if sombeody is experiencing a problem, he can create a docker container 
+to isolate the app and the problem, and send it back to the support engineers. Also, some times, we want to test one app with different patches, so can
+be useful to have all the different versions of the server container as images, so we can try an app in them.
+
+Let's assume we have to try a feature in SwitchYard 1.1.1 and 2.0.0, and that we have an image for both containers:
+
+* jboss/switchyard:1.1.1
+* jboss/switchyard:2.0.0
+
+We can just spin up both containers and test the app to see if it works
+----
+docker run -it --rm -P jboss/switchyard:1.1.1
+docker run -it --rm -P jboss/switchyard:2.0.0
+----
+
+Once we have both containers (just note that if run in foreground, need to run in different terminals, and have different ports exported. I have added -P to auto export ports), we can go to the
+corresponding consoles and deploy the app and test. 
+
+NOTE: If we want to have our tools set to certain ports (to be predictive) it is easier to have the ports defined in the command line, and use one container at a time
+
+=== Integration / Testing
+In the integration test case, what we want is to have our integration tools spinning up the container for us and deploying the app into this container, do all the integration tests and then
+stop/destroy the container.
+
+This can easily be achievable with Jenkins (or many of the CI servers out there).
+
+This way we can:
+
+* Have a clean environment for every test / app
+* Test against many different versions of the Application Server container in an automated way
+
+When adopting testing agains containers, the time for detecting problems lowers so much, that the effort it makes to put it in action pays back very soon.  
+
+== Tips for developers
+As we can develop easily with docker as the container for our Application server, we can easily configure our tools to use this container, so we can have a maven profile to use our containers:
+
+----
+    <profile>
+       <id>sy-1</id>
+       <properties>
+          <jboss-as.hostnamelocalhost</jboss-as.hostname>
+          <jboss-as.port>9999</jboss-as.port>
+          <jboss-as.username>admin</jboss-as.username>
+          <jboss-as.password>admin123!</jboss-as.password>
+       </properties>
+    </profile>
+    <profile>
+       <id>sy-2</id>
+       <properties>
+          <jboss-as.hostnamelocalhost</jboss-as.hostname>
+          <jboss-as.port>19999</jboss-as.port>
+          <jboss-as.username>admin</jboss-as.username>
+          <jboss-as.password>admin123!</jboss-as.password>
+       </properties>
+    </profile>
+---- 
+
+And we can do a
+----
+mvn clean install jboss-as:deploy -P sy-1 
+----
+to deploy to the SwitchYard 1 container (with port 9999 exported at localhost 9999), or
+----
+mvn clean install jboss-as:deploy -P sy-2 
+----
+to deploy to the SwitchYard 2 container (with port 9999 exported at localhost 19999).
+ 
+// vim: set syntax=asciidoc:

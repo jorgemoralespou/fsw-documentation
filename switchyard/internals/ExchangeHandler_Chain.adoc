@@ -22,7 +22,7 @@ There is a chain of ExchangeHandlers acting as interceptors for the request and 
 ** *security-process*:  SecurityHandler interprets security policy specified on an exchange and handles security requirements. Cretes the SecurityContext and SecurityProvider and attaches to the thread.
 ** *generic-policy*: PolicyHandler
 ** *validation-before-transform*: ValidateHandler executes the *org.switchyard.validate.Validator* defined for the Exchange`s content type.
-** *transformation*: TransformHandler applies all the defined transformations (*org.switchyard.transform.TRansformer*) for the message for consumer.inputType to provider.inputType and set the Exchange's new content type.
+** *transformation*: TransformHandler applies all the defined transformations (*org.switchyard.transform.Transformer*) for the message for consumer.inputType to provider.inputType and set the Exchange's new content type.
 ** *validation-after-transform*: ValidateHandler executes the *org.switchyard.validate.Validator* defined for the new Exchange`s content type.
 ** *provider*: ProviderHandler dispatches the message to the provider (component).
 ** *security-cleanup*: SecurityHandler cleanup of context and thread info.
@@ -34,8 +34,10 @@ NOTE: Only IN_OUT Exchanges will execute the ReplyChain, that's why there are 2 
         
 * *ReplyChain*
 ** *validation-before-transform*: ValidateHandler executes the *org.switchyard.validate.Validator* defined for the Exchange`s content type.
-** *transformation*: TransformHandler applies all the defined transformations (*org.switchyard.transform.TRansformer*) for the message for provider.outputType to consumer.outputType and set the Exchange's new content type.
+** *transformation*: TransformHandler applies all the defined transformations (*org.switchyard.transform.Transformer*) for the message for provider.outputType to consumer.outputType and set the Exchange's new content type.
 ** *validation-after-transform*: ValidateHandler executes the *org.switchyard.validate.Validator* defined for the new Exchange`s content type.
 ** *HandlerChain.CONSUMER_HANDLER*: BaseHandler 
 
 image::handler_chain/HandlerChain_IN_OUT.png[IN_OUT Handler Chain]
+
+// vim: set syntax=asciidoc:
