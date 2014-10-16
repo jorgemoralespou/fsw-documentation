@@ -256,11 +256,11 @@ image::switchyard/service_creation/1.png[Call external applications]
 
 Every service needs to have it's contract defined (API).
 
-This contracts can be defined in on of 3 ways:
+This contracts can be defined in one of 3 ways:
 
 * Java 
 * WSDL
-* SOA
+* ESB
 
 NOTE: SwitcyYard require a one parameter per method in the contract definition
 

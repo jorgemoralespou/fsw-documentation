@@ -1,0 +1,221 @@
+= SwitchYard Context
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:description: SwitchYard Context
+:revdate: 2014-10-07
+:revnumber: 0.1
+:icons: font
+:imagesdir: ./images
+:figure-caption!:
+:deckjs_theme: web-2.0
+:scrollable:
+
+== Introduction
+Holds contextual information around the exchange of messages between a service consumer and provider.
+SwitchYard context resembles Camel Context and in the execution of a Camel Component delegates/extends CamelContext.
+
+It is just a placeholder for name/value pairs, but internally holds *Property* objects consisting of a name, scope, value and labels.
+
+- Interface definition is *org.switchyard.Context*.
+- Default implementation is *org.switchyard.internal.CompositeContext*
+
+Context has scopes (Message and Exchange) and the life of this contexts is bound to the life of the scope it defines. 
+
+* A property defined with Scope.MESSAGE will live as long as the Message that defined the property lives. 
+* A property defined with Scope:EXCHANGE will live for the entire life of the Exchange, surviving every message that is sent to the Exchange.
+
+You can get a property from the context in a specific scope with *getProperty(String name, String scope)* or regardless of the scope with *getProperty(String name)*
+
+You can add a property, label a property, remove a property in one scope, in any scope, all the properties,...
+
+=== Labels
+Labels are a way to mark a Context Property, and relate it to a SwitchYard funtcionality.
+
+Base class is *org.switchyard.label.Label*
+
+There are 5 types of labels (OOTB):
+
+* *BehaviorLabel*: Marks the property relative to certain actions and/or behavior. (Copy of context,...) (label type: *behavior*)
+** _TRANSIENT_: the property will not be preserved in a copy of the Exchange via Context.copy()
+* *ComponentLabel*: Marks the property relative to certain component (label type: *component*)
+** CAMEL, HORNETQ, HTTP, JCA, RESTEASY, SOAP
+* *EnpointLabel*: Marks the property relative to Endpoint related actions (context composition, message composers,...) (label type: *endpoint*)
+** AMQP, ATOM, DIRECT, FILE, FTP, FTPS, HTTP, JCA, JMS, JPA, MAIL, MOCK, QUARTZ, REST, SEDA, SFTP, SOAP, SQL, TCP, TIMER, UDP, URI
+* *HttpInvokerLabel*: Marks the property to be used as a header in the HTTPInvoker (label type: *httpinvoker*) 
+** HEADER
+* *PropertyLabel*: Marks the type of the property. It is used in JMS to mark JMS Properties or JMS Headers (label type: *property*).
+** HEADER, PROPERTY
+
+==== SwitchYard labels
+A label is composed following this rule:
+
+----
+prefix.<lowercase(label_type)>.<lowercase(label_name)> 
+----
+
+* prefix: "org.switchyard.label."
+* label type: (behavior, component, endpoint, httpinvoker, property)
+* label name: (TRANSIENT, CAMEL, HTTP, JCA,....., HEADER, PROPERTY)
+
+Examples:
+----
+org.switchyard.label.behavior.transient
+org.switchyard.label.endpoint.http
+org.switchyard.label.endpoint.soap
+org.switchyard.label.component.soap
+org.switchyard.label.property.header
+----
+
+== Usage
+SwitchYard uses the context for 3 main purposes:
+
+- Storing internal information for the engine to work (defining behavior, lifecycle, ...). Every SwitchYard defined property is named with *org.switchyard.* prefix
+- Binding components store information in the Context (camel components mainly)
+- User specific storage of information.
+
+=== SwitchYard usage of the Context
+SwitchYard stores information in the context, in the appropiate Scope to model its behavior. It uses labels to mark the context of the information in the context, and to be 
+able to remove the properties from the context when appropriate. Some of the functionalities in the Context and Labels are not meant to be used by users, only by SwitchYard internals,
+although they are defined in the same place. 
+
+=== User usage of the Context
+User is subject to store information in the Context, also to model the application behavior in terms of user functionality.
+A user can use the Context in every SwitchYard component, in the MessageComposers and ContextMappers, transformers,... but how to access the context varies.
+
+==== Components
+Java:: You can Inject the Context in any Java Component (Service Implementation) by using the *@Component* annotation
+Camel:: SwitchYard context properties are mapped to the Exchange properties and Message headers based on the scope (Scope.MESSAGE, Scope.EXCHANGE). 
+There is no need to interact with the SwitchYard context in a Camel component.
+
+* SwitchYard Exchange Properties are mapped to Camel Properties.
+
+[source,java]
+----
+ from("xxx")
+.setProperty("MyHeader", "MyValue")
+.to("yyy");
+----
+
+* SwitchYard Message Properties are mapped to Camel Message Headers.
+
+[source,java]
+----
+ from("xxx")
+.setHeader("MyHeader", "MyValue")
+.to("yyy");
+----
+BPMN/Rules:: There are some Implicit Variables when defining the "from" in mappings from SY to Component.
+
+* *context*: The current org.switchyard.Context.
+* *message*: The current org.switchyard.Message.
+
+Some examples:
+----
+from="message.content" - This is the same as message.getContent().
+from="context[‘foo’]" - This is the same as context.getProperty("foo", Scope.MESSAGE).getValue(), in a null-safe manner.
+----
+
+BPEL:: TODO
+
+==== MessageComposers
+In a MessageComposer you have the *Exchange* as a parameter to compose/decompose methods, so to get access to the context you can:
+
+[source,java]
+----
+context = exchange.getContext();
+----
+
+==== ContextMappers
+In a ContextMapper you have the *Context* as a parameter to mapFrom/mapTo methods.
+
+==== Transformers
+If you need to get access to the context in a SwitchYard transformer, you can qualify the "from" and 
+use Message as input type in the transformer method.
+
+[source,java]
+----
+@Transformer(from = "java:com.example.ClassOne")
+public ClassTwo transform(Message message) {
+   Context context = message.getContext();
+   ....
+   return classTwo;
+ } 
+----
+
+==== ExchangeInterceptors
+In ExchangeInterceptors you have the *Context* as a parameter to before/after methods.
+
+=== How is the information stored in the Context
+Once you have access to the Context, every Property looked up in the context (if looked up without explicitly passing a Scope) will be first looked up 
+as Message scoped and the as Exchange scoped.
+If the user sets a property without explicitly targeting a Scope, this Property will be defined as Message scoped.
+
+Some examples of Context usage:
+[java,source]
+----
+Context context = exchange.getContext();
+context.setProperty("BindingName", gatewayName, Scope.MESSAGE);
+context.setProperty("org.switchyard.exchangeGatewayName");   // This property will be Message scoped
+
+context.getProperty("org.switchyard.exchangeGatewayName", Scope.Exchange);
+context.getProperty("BindingName");   // Will return Message scoped property if defined, or then Exchange scoped
+
+context.getProperties(); // Will provide with a Set<Property> with every property in every context
+context.getProperties(Scope.EXCHANGE); // Will provide with a Set<Property> with every property in EXCHANGE context
+
+context.removeProperties(); // Clears out the context
+context.removeProperties(Scope.MESSAGE); // Clears out the MESSAGE Scope context
+context.removeProperties(Label); // Removes every property in every context with that Label
+----
+
+== Exchange context
+This is a graphical representation of the Exchange context
+
+[source,java]
+----
+Exchange Context -> 
+    CamelBatchComplete .............................: true
+    CamelBatchIndex ................................: 0
+    CamelBatchSize .................................: 1
+    org.switchyard.bus.camel.consumer ..............: ServiceReference [name={....}]
+    org.switchyard.bus.camel.contract ..............: org.switchyard.metadata.BaseExchangeContract@49cb9565
+    org.switchyard.bus.camel.dispatcher ............: org.switchyard.bus.camel.ExchangeDispatcher@65994f93
+    org.switchyard.bus.camel.labels ................: {CamelFileExchangeFile=[org.switchyard.label.component.camel, org.switchyard.label.endpoint.file],...., org.switchyard.security.context.SecurityContext=[org.switchyard.label.behavior.transient]}
+    org.switchyard.bus.camel.phase .................: IN
+    org.switchyard.bus.camel.replyHandler ..........: org.switchyard.component.camel.CamelResponseHandler@54a37b1a
+    org.switchyard.exchangeGatewayName .............: file1
+    org.switchyard.exchangeInitiatedNS .............: 10999671294181171
+    org.switchyard.security.context.SecurityContext : DefaultSecurityContext@1210402593[systemUUID=455e975a-de16-4450-ac34-4b358fe1915d, expirationMillis=0, credentials=[], securityDomainsToSubjects={}]
+----
+
+== Message Context
+This is a graphical representation of the Message context
+
+[source,java]
+----
+Exchange Context -> 
+Message Context -> 
+    BindingName .........................: file1
+    CamelFileAbsolute ...................: true
+    CamelFileAbsolutePath ...............: /input
+    CamelFileLastModified ...............: 1412686922000
+    CamelFileLength .....................: 702
+    org.switchyard.bus.camel.labels .....: {CamelFileAbsolutePath=[org.switchyard.label.component.camel, org.switchyard.label.endpoint.file], ...., CamelFileLength=[org.switchyard.label.component.camel, org.switchyard.label.endpoint.file]}
+    org.switchyard.bus.camel.messageSent : true
+    org.switchyard.messageComposer ......: com.xxx.MyMessageComposer@1a6a1e9f
+    timeIn ..............................: 20141007150250407
+----
+
+==== User defined labels
+A user might want to create a label to mark and to add/remove information that they add in an easy way. It is just a matter of defining a new subclass
+of Label, and add the enumeration of labels needed.
+
+In this way, a user can add information into the context, and then remove all of their information at once:
+
+[java,source]
+----
+context.addProperty("userTransactionId","x12fd25", Scope.EXCHANGE, UserDefined.USER.label());
+...
+context.removeProperties(UserDefined.USER.label());
+----
+

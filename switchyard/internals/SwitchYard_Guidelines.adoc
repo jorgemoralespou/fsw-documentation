@@ -1,0 +1,228 @@
+= SwitchYard Guidelines
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:description: SwitchYard Guidelines
+:revdate: 2014-10-07
+:revnumber: 0.1
+:icons: font
+:imagesdir: ./images
+:figure-caption!:
+:deckjs_theme: web-2.0
+:scrollable:
+
+== Introduction
+This document describes guidelines and best practices on how to develop services. Although there are many ways of achieving 
+the same functionality in SwitchYard, these is the recommended approach to ease development effort and to leverage all the capabilities
+provided by the engine.
+
+=== Strongly type your contracts
+As the input type in an operation's contract is the Message, you should always use a type if you expect a message. Even if it works without a message it is
+in no way recommended, and can lead to multiple problems with difficult dianostic. 
+
+==== Wrong
+
+[source,java]
+----
+public interface MyWrongContract {
+	public void operation();
+}
+----
+
+==== Right
+[source,java]
+----
+public interface MyRightContract {
+	public void operation(MyType input);
+}
+----
+
+=== Use the appropiate types in your contracts
+If you want to leverage the type conversion provided with SwitchYard, and also be able to efficiently work with your information (objects/types) in your components it is
+strongly adviced to use the appropiate types, and not relying on generic types, that will need conversions.
+
+NOTE: Sometimes can be convenient to use a generic type, mostly to avoid conversions, but it is not a general rule.
+
+==== Wrong
+
+[source,java]
+----
+public interface MyContract {
+	public void operation(org.w3c.dom.Element input);
+}
+----
+
+==== Right
+[source,java]
+----
+public interface MyContract {
+	public void operation(com.company.type.MyType input);
+}
+----
+
+=== Use declarative transformations
+When you have to tranform a type, like when a Composite Service interface is different from the Component Service interface, you can instruct SwitchYard to do the transformation
+for you. It will be applied automatically while processing the wire.
+
+You can add required transformers or a specific tranformation, and you can use one of the multiple transformations mechanisms.
+See: https://docs.jboss.org/author/display/SWITCHYARD/Transformation
+
+=== If using Java transformations, create common functionality, to not repeat yourself
+When using Java transformations, and more if transforming to/from XML, you'll end up adding same code in many transformations. Extract a base class into your utils to ease Java/XML conversion.
+
+[source,java]
+----
+public abstract class BaseTransformers {
+
+    /**
+     * Gets an element value for transforming from Element to Java Type
+     *
+     *  Usage: MyType myTransform(Element e) {
+     *            String s = getElementValue(e, "xxx");
+     *            return new MyType(s);  
+     *         }
+     */
+    private String getElementValue(Element parent, String elementName) {
+        String value = null;
+        NodeList nodes = parent.getElementsByTagName(elementName);
+        if (nodes.getLength() > 0) {
+            value = nodes.item(0).getChildNodes().item(0).getNodeValue();
+        }
+        return value;
+    }
+
+    /**
+     *  Creates an Element, for tranforming from Java Type to Element
+     *
+     *  Usage: public Element myTransform(MyType from) {
+     *           String xml = "<xxx>" + from.toString +  "</xxx>";
+     *           return toElement(xml);
+     *         }
+     *
+     */
+    private Element toElement(String xml) {
+        DOMResult dom = new DOMResult();
+        try {
+            TransformerFactory.newInstance().newTransformer().transform(new StreamSource(new StringReader(xml)), dom);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ((Document)dom.getNode()).getDocumentElement();
+    }
+
+----
+
+=== Use @OperationTypes in your interface if you want to instruct SwitchYard for a different type than that in the interface
+Sometimes it can be convenient to have the XML representation of an Object and not require SwitchYard to do a transformation from the XML type to
+a String. For this cases (and many others) can be convenient to annotate your interface so SwitchYard knows it doesn't need to transform to the String type.
+
+[source,java]
+----
+public interface OrderService {
+    
+    @OperationTypes(in = "{urn:switchyard-quickstart:bean-service:1.0}submitOrder")
+    void submitOrder(String orderXML);
+}
+----
+
+In this way, the String that will get to the submitOrder method will be:
+
+[source,xml]
+----
+<urn:submitOrder xmlns:urn="urn:switchyard-quickstart:bean-service:1.0">
+   <order>
+      <orderId>1</orderId>
+      <itemId>1</itemId>
+      <quantity>100</quantity>
+   </order>
+</urn:submitOrder>
+----
+
+=== Get access to the Context in a Transformer
+@Context annotation is limited to be used inside of components.
+If you need to get access to the context in a SwitchYard transformer, you can qualify the "from" and 
+use Message as input type in the transformer method.
+
+[source,java]
+----
+@Transformer(from = "java:com.example.ClassOne")
+public ClassTwo transform(Message message) {
+   Context context = message.getContext();
+   ....
+   return classTwo;
+ } 
+----
+
+=== Use MessageComposers to adapt the message transformation from/to Message from/to Binding
+Message composers are used to translate the binding message (SOAPEnvelope, HTTP Body, Rest Body, File contents, ...) into the SwitchYard Message.
+This is the place to put logic to customize this transformation. And only transformation of the message/body.
+
+Create a custom MessageComposer (best to extend the one for the binding you are using) and override the
+appropriate method:
+
+compose:: Takes the data from the passed in source object and composes a SwithYardMessage based on the specified Exchange.
+[source,java]
+----
+public Message compose(D source, Exchange exchange) throws Exception;
+----
+    
+decompose:: Takes the data from the SwitchYardMessage in the specified Exchange and decomposes it into the target object.
+[source,java]
+----
+public D decompose(Exchange exchange, D target) throws Exception; 
+----
+
+=== Use ContextMappers to customize context mapping from/to Context from/to Binding
+Context mappers are used to translate the binding context (SOAP Headers, HTTP Headers, ...) into the SwitchYard Context.
+This is the place to put logic to customize the creation and assigment of information into the Context.
+
+Create a custom ContextMapper (best to extend the one for the binding you are using) and override the
+appropriate method:
+
+mapFrom:: Maps a source object's properties to the context.
+[source,java]
+----
+public void mapFrom(D source, Context context) throws Exception;
+----
+
+mapTo:: Maps a context's properties into a target object.
+[source,java]
+----
+public void mapTo(Context context, D target) throws Exception;
+----
+
+=== Use SCA to decompose and decouple your applications
+Usually applications start to grow big, and very coupled the information in there. Many wires from services to components to wires,...
+In such an scenario it is very good option to think as SCA binding as the solution, as introduces 2 benefits:
+
+- Allows for easy decouplig and composition of applications.
+- Application dependency is only honoured at runtime. You can deploy appA that has an sca call to appB before even deploying appB. It will only fail at runtime if you do not deploy appB.
+
+=== Externalize configuration from the system (but be aware of the limitations)
+Applications should not have configuration information that may be different in different environments hard coded. Even component, composite and domain properties are not good for this,
+as they require rebuilding of the application, so use JBossAS properties or System.properties or environment to externalize your configuration.
+
+Configuration is applied typically at activation of a service, so any https://docs.jboss.org/author/display/SWITCHYARD11/Properties[Environment Property] will be read, and if changed will require,
+at a minimum, from an application reactivation, or a server restart.
+
+JBossAS7 properties can be changed from the console, and if you read them in your execution path will be hot-reloaded, otherwise, if it is configuration property, will still require 
+an application reactivation.
+
+static property:: This property will be read once (when the class is instantiated) and needs an application reactivation/redeployment to change
+[source,java]
+----
+static String password = System.getProperty("password");
+
+public void process(Exchange exchange) throws Exception {
+   ....         
+}
+----
+
+dynamic property:: This property will be read per every invocation and will be changed in real time
+[source,java]
+----
+public void process(Exchange exchange) throws Exception {
+   String password = System.getProperty("password");
+         
+   ....         
+}
+----

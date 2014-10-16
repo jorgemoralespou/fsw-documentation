@@ -1,0 +1,126 @@
+= SwitchYard contracts
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:description: SwitchYard
+:revdate: 2014-10-10
+:revnumber: 0.1
+:icons: font
+:imagesdir: ./images
+:figure-caption!:
+:deckjs_theme: web-2.0
+:scrollable:
+
+== Description 
+When working with SwitchYard we have to define the contraccts for our services as well as for our component implementations.
+In order to define our contracts there is different ways, and different points, depending on:
+
+- Component implementation
+- Service binding
+
+image::sy_contracts/SY_Contracts.png[SwitchYard Contracts]
+
+As we can see in the picture above, in a simple service we can find, at least, the following contracts:
+
+* Component contracts
+** Component service
+** Component reference
+* Composite contracts
+** Composite service
+** Composite reference
+* Binding contracts
+** Service Binding
+** Reference Binding
+
+----
+SERVICES CONTRACTS SHOULD BE CORRECTLY TYPED
+----
+
+=== Component contracts
+This is the contract a component exposes or uses, depending on whether it is a service or reference contract.
+A component contract can be defined in 3 different ways in SwitchYard:
+
+* *Java*. Using a Java interface.
+* *WSDL*. Using a port type in a wsdl file.
+* *ESB*. Using a virtual interface definition. (No real file will be used).
+
+A component contract in SwitchYard has the following characteristics:
+
+- 0..1 *argument*. If used, this will be the *message content*. It is optional as there can be operations that don't expect a message (REST GET, Scheduled operations,...). Used in Exchanges of type IN_ONLY and IN_OUT.
+- 0..1 *return type*. If used, this will be the message content for the response. Used only in Exchanges of type IN_OUT.
+- 0..1 *exceptions*.  If used, this will be the message content for the response if there is an Exception. Used in Exchanges of type IN_ONLY and IN_OUT.
+
+NOTE: Contracts in Camel can be defined with empty parameters, and you will still be able to work with the message contant. *DO NOT RELY ON THIS*
+
+== Java contract
+A Java contract is defined by a Java Interface.
+
+image::sy_contracts/java_interface_1.png[Java contract]
+image::sy_contracts/java_interface_2.png[Java contract]
+
+WARNING: Java components require Java contracts.
+
+== WSDL contract
+A WSDL contract is defined by a port type in a wsdl file.
+
+image::sy_contracts/wsdl_interface_1.png[WSDL contract]
+image::sy_contracts/wsdl_interface_2.png[WSDL contract]
+
+
+== ESB contract 
+An ESB contract is a virtual contract (no file required) that declares the types of the input, output and exception types.
+
+image::sy_contracts/esb_interface_1.png[ESB contract]
+image::sy_contracts/esb_interface_2.png[ESB contract]
+
+NOTE: This contract can only be used in components with one single operation.
+
+== Transformations between contracts
+When a message flows in SwitchYard, and there is different types in the contracts on both ends of the "channel", a transformation must be done. There can be implicit or explicit transformations happening,
+depending on where they have to happen, and there are extension points to define how the transformation between types in contracts must happen. 
+
+=== Composite Service Binding and Composite Service / Composite Reference and Composite Reference Binding
+
+Contract differences are handled in the http://unpoucode.blogspot.com/2014/10/switchyard-servicehandlers.html[ServiceHandlers] when composing and decomposing the 
+SwitchYard message.
+
+*Any difference in contracts must be handled in the http://unpoucode.blogspot.com.es/2014/10/message-composers-in-switchyard.html[Message composer].*
+
+image::sy_contracts/servicehandler_transform.png[ServiceHandler transform]
+
+NOTE: Camel and Http MessageComposers will do Camel Implicit Transformations if required. If target type is JAXB, the class needs to have *@XMLRootElement* annotation.
+
+=== Composite Service and Component Service / Component Reference and Composite Reference
+Contract differences are handled by transformers defined in the composite application, which are applied by the 
+http://unpoucode.blogspot.com/2014/10/switchyard-exchangehandler-chains.html[ExchangeHandler chain] during the execution of the Exchange.
+
+The transformers usually map from an origin type to a destination type.
+
+When the Exchange is between a composite service and a component service:
+
+- In the IN phase, from is the *argument's type* of the composite service and the to is the type in the component service.
+- In the OUT phase, from is the *return/exception type* of the component service and the to is the *return/exception type* in the composite service.
+
+When the Exchange is between a component reference and a composite reference:
+
+- In the IN phase, from is the *argument's type* of the component reference and the to is the type in the composite reference.
+- In the OUT phase, from is the *return/exception type* of the composite reference and the to is the *return/exception type* in the component reference.
+
+NOTE: There will be some implicit transformation happening (not need to declare a transformer) if SwitchYard supports automatic transformation between
+both types, as declared by https://github.com/jboss-switchyard/components/blob/master/camel/component/src/main/resources/META-INF/switchyard/transforms.xml[CamelTransformer]
+
+WARNING: As of SY 1.1.1, there is no implicit transformation for https://issues.jboss.org/browse/SWITCHYARD-366[primitives types]
+
+image::sy_contracts/wire_transform.png[Wire transform]
+
+=== Component Service and Component Reference 
+Contract differences are handled in the component implementation, and has to be explicitly transformed. 
+
+image::sy_contracts/component_transform.png[Component transform]
+
+== Special attention
+
+* If a Composite Service does not declare an interface, it will use the interface defined by the promoted Component Service
+* Every Component can have one Service
+* Binding name can be null. In this case, a binding name will be automatically generated with "ServiceName+BindingType+i"
+* When the input parameter of a service contract is empty, the message will not be change, it will be in it's original form (e.g. java.io.Reader for streaming bindings like HTTP, File,...)
+

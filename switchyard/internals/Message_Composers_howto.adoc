@@ -1,0 +1,153 @@
+= Message composers howto
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:revdate: 2014-10-08
+:revnumber: 0.1
+:description: SwitchYard message composers
+:toc2:
+:toclevels: 4
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+:figure-caption!:
+
+== HOWTOS
+
+=== How to pass a header from an incoming request to use it in the SwitchYard application
+You need to add the header in the Message Composer design time configuration screen for the Composite Service Http Binding.
+
+image::message_composition_howto/pass_header.png[Authorization header]
+
+NOTE: Remember that headers are *lowercased*.
+
+If you want to progress this header to a Composite Reference, you need to add it again to the Composite Reference Http Binding's Message Composer design time configuration screen
+
+=== How to send a header to an outgoing request
+You need to add the header in the context of the invocation with EndpointLabel.HTTP. To be able to modify aspects of the call to the reference, this need to be done as a ReferenceInvoker rather than as a regular Reference.
+
+[source,java]
+----
+   @Inject
+   @Reference("RealHttpService")
+   private ReferenceInvoker referenceInvoker;
+
+	public String myBeanMethod(String params){
+	String replyContent = "";
+		ReferenceInvocation invocation = null;
+
+		try{
+			invocation = referenceInvoker.newInvocation();
+	   	Context context = invocation.getMessage().getContext();
+
+	   	// Set the header we want
+	   	context.setProperty("Authorization", "xxxx").addLabels(EndpointLabel.HTTP.label());
+
+	   	// Call the service
+	   	replyContent = invocation.invoke(params).getMessage().getContent(String.class);
+	   }catch(Exception e){
+			// Manage exception
+	   }
+   	return replyContent;
+   }
+----
+
+=== How to change configuration for calling service (method, queryString, queryArgs). How to invoke dynamically
+
+WARNING: This is not possible with HTTP Binding reference. You have to use Camel binding reference.
+
+image::message_composition_howto/camel_reference_binding.png[Camel Reference binding]
+
+To be able to modify aspects of the call to the reference, this need to be done as a ReferenceInvoker rather than as a regular Reference.
+
+[source,java]
+----
+   @Inject
+   @Reference("RealHttpService")
+   private ReferenceInvoker referenceInvoker;
+
+	public String myBeanMethod(String params){
+	String replyContent = "";
+		ReferenceInvocation invocation = null;
+
+		// We get information from incoming request
+      HttpRequestInfo requestInfo = msgContext.getPropertyValue(HttpComposition.HTTP_REQUEST_INFO);
+
+		try{
+			invocation = referenceInvoker.newInvocation();
+	   	Context context = invocation.getMessage().getContext();
+
+	   	// We copy (progress)  method, path and query string
+	   	context.setProperty(org.apache.camel.Exchange.HTTP_METHOD, requestInfo.getMethod());
+      	context.setProperty(org.apache.camel.Exchange.HTTP_URI, "http://localhost:8080" +  requestInfo.getPathInfo());
+      	context.setProperty(org.apache.camel.Exchange.HTTP_QUERY, requestInfo.getQueryString());
+
+	   	// Call the service
+	   	replyContent = invocation.invoke(params).getMessage().getContent(String.class);
+	   }catch(Exception e){
+			// Manage exception
+	   }
+   	return replyContent;
+   }
+----
+
+=== How to check the status code of an invocation to an external service
+You need to check for the following context Property *HttpContextMapper.HTTP_RESPONSE_STATUS*
+
+----
+   @Inject
+   @Reference("RealHttpService")
+   private ReferenceInvoker referenceInvoker;
+
+	public String myBeanMethod(String params){
+	String replyContent = "";
+		ReferenceInvocation invocation = null;
+
+		try{
+			invocation = referenceInvoker.newInvocation();
+			....
+	   	// Call the service
+	   	replyContent = invocation.invoke(params).getMessage().getContent(String.class);
+	   }catch(Exception e){
+			int statusCode = invocation.getContext().getPropertyValue(HttpContextMapper.HTTP_RESPONSE_STATUS)
+			// Manage exception
+			...
+	   }
+   	return replyContent;
+   }
+----
+
+=== How to set the status code of an invocation to a SwitchYard application
+You need to set the following context Property *HttpContextMapper.HTTP_RESPONSE_STATUS* with label *EndpointLabel.HTTP*. In order to do this in a component, you need to create a new Message and send it to the Exchange.
+
+In a BeanComponent:
+
+[source,java]
+----
+   private void replyWithHTTPStatusCode(Exchange currentExchange, int statusCode) {
+      Message reply = currentExchange.createMessage();
+      reply.getContext().setProperty(HttpContextMapper.HTTP_RESPONSE_STATUS, statusCode).addLabels(EndpointLabel.HTTP.label());
+      currentExchange.send(reply);
+   }
+----
+
+In a CamelComponent:
+
+In a Route:
+
+[source,java]
+----
+	.to("EXTERNAL_SERVICE")
+	.setHeader(HttpContextMapper.HTTP_RESPONSE_STATUS, constant(200))
+----
+
+In a Processor:
+
+[source,java]
+----
+    exchange.getIn().setHeader(HttpContextMapper.HTTP_RESPONSE_STATUS, statusCode);
+----
+
+=== How to copy all HTTP incoming headers and progress them
+Right now there is no way to copy all headers from Http service binding to an Http Reference Binding but to specify all the headers you want to copy in the regex includes field for both MessageComposers.
+Another option is to create your own MessageComposer, that extends the basic HttpMessageComposer and copy all the headers in the context in the Service Binding, and then set them back in the Reference Binding.
+

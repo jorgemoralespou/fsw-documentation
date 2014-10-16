@@ -1,0 +1,94 @@
+= FSW SwitchYard
+:author: Jorge Morales 
+:email: <jmorales@redhat.com>
+:description: FSW training
+:revdate: 2014-07-17
+:revnumber: 0.1
+:icons: font
+:imagesdir: ./images
+:figure-caption!:
+:deckjs_theme: web-2.0
+
+== ServiceHandlers
+
+Every SwitchYard application has a composite service with one or multiple bindings. 
+
+Every binding acts as an endpoint. Incoming endpoint if it is a binding on a service or outgoing endpoint if it is a binding on a reference. 
+
+This endpoints are created, registered and started when the aplication gets deployed, and are stoped, unregistered and destroyed when the application is undeployed.
+
+Every endpoint implements *org.switchyard.deploy.ServiceHandler*
+
+There are inbound handlers and outbound handlers, depending if they act as server endpoints or client endpoints.
+
+Inbound handlers:
+
+* org.switchyard.component.camel.common.handler.InboundHandler: An handler that acts as a gateway/entrypoint for Camel Components.
+* org.switchyard.component.http.InboundHandler: Hanldes HTTP requests to invoke a SwitchYard service.
+* org.switchyard.component.resteasy.InboundHandler: Handles RESTEasy requests to invoke a SwitchYard service.
+* org.switchyard.component.soap.InboundHandler: Handles SOAP requests to invoke a SwitchYard service.
+* org.switchyard.component.sca.SCAEndpoint: For publishing services as SCA
+
+Outbound handlers:
+
+* org.switchyard.component.camel.common.handler.OutboundHandler: A handler that is capable of calling Apache Camel components.
+* org.switchyard.component.http.OutboundHandler: Handles invoking external HTTP services.
+* org.switchyard.component.resteasy.OutboundHandler: Handles invoking external RESTEasy services.
+* org.switchyard.component.soap.OutboundHandler: Handles invoking external Webservice endpoints.
+* org.switchyard.component.sca.SCAInvoker: Handles outbound communication to an SCA service endpoint
+
+image::service_handlers/service_handlers.jpg[Service Handlers]
+
+== How does an InboundHandler Works
+
+When it is created, an instance of the BindingModel (configuration) is passed, as well as an instance of the ServiceDomain, is passed to the InboundHandler.
+
+When it starts creates the ServiceReference representing the endpoint, the endpoint for the corresponding binding and the message composer.
+
+Provides one method, *invoke*, where all the logic for an invocation to the endpoint happens.
+
+When it stops, the endpoint is stopped.
+
+== InboundHandler.invoke()
+
+* creates an Exchange
+* add identy to the Exchange to identify the origin of the invocation
+* compose the message (*MessageComposer.compose()*) from the passed binding Message (*BindingData*)
+* send the Message to the Exchange (*Exchange.send()*)
+* If it is IN_OUT:
+** it will wait for a response (Default timeout of 5 minutes)
+** it will decompose the response (*MessageComposer.decompose()*)
+* it returns the decomposed message as *BindingData*
+
+== How does a message translation works
+Here we will find a description of what is happening at the message composition time in a call to a SwitchYard application through an external binding and having one call to an external reference through a binding.
+
+image::service_handlers/MessageComposition_Flow.jpg[Message composition flow]
+
+. *Request message from binding to service (Request from client)*. The request message is converted from the binding message type to the internal SwitchYard *Message*, and all the binding headers (HTTP, SOAP, ...) will be mapped into the corresponding properties in the SwitchYard *Context* associated to the Message, and it is set to the Exchange.
+. *Service component implementations execution*. The request pipelines of a component will be executed, until a there is a call to an external service.
+. *Request message from reference to binding (External service call)*. A call to the external service is about to happen, and message needs to be converted from SwitchYard Message to the reference binding data, the MessageComposer will decompose the message back to the binding format and properties will be extracted from the SwitchYard *Context* and set into the binding message. 
+. *Response message from binding to reference (Response from remote service)*. Once the external service has been executed, the response from this external service will be mapped back into SwitchYard by the MessageComposer.mapFrom(). The ContextMapper will copy the appropiate message/transport headers back into the Message *Context* 
+. *Service execution*. The rest of the components` pipeline will be executed.
+. *Response message from service to binding (Response to client caller)*. When our application has ended it's execution and it is returning the result to the caller, the MessageComposer will decompose the SwitchYard message back to the binding message and the ContextMapper will map the properties in the Context back to the binding message.
+
+NOTE: Additional behaviour relative to the correspoding transaltions will exist in the predefined MessageComposers and ContextMappers (SOAP, REST, HTTP,...) 
+
+== How does an OutboundHandler Works
+When it is created, an instance of the BindingModel (configuration) is passed, as well as an instance of the ServiceDomain, is passed to the OutboundHandler.
+
+When it starts creates and configures a ENdpoint consumer to access the external service through the corresponding Binding method (HTTP, SOAP, REST, ...).
+
+Provides one method, *handleMessage*, where all the logic for an invocation to the external service happens.
+
+No stop lifecycle.
+
+== OutboundHandler.handleMessage()
+* add identy to the Exchange to identify the origin of the invocation
+* decompose the message (*MessageComposer.decompose()*) to a binding Message (*BindingData*)
+* it will use the dispatcher (HTTP, SOAP, REST, ...) to invoke the real service with the binding data
+* If it is IN_OUT:
+** it will wait for a response
+** it will compose the response (*MessageComposer.compose()*) from the received BindingData back into a Message
+* send the Message to the Exchange (*Exchange.send()*) (or *Exchange.sendFault()* if it was an error)
+
